@@ -1,0 +1,20 @@
+# Project-internal, never commit
+specs/
+data/
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# OS / editor
+.DS_Store
+
+# Regenerated report artifacts
+reports/*.png
