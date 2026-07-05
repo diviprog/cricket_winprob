@@ -82,3 +82,19 @@ def test_average_swing_matches_manual_mean():
     got = average_swing(states, dist, wp)
     manual = np.mean([swing(s, dist, wp) for s in states])
     assert np.isclose(got, manual)
+
+
+# --- WPA accounting identities (exact) -------------------------------------
+@data
+def test_wpa_zero_sum_and_telescoping():
+    """Batter and bowler WPA cancel per ball (zero-sum), and total batting WPA
+    telescopes exactly to sum over innings of (y - wp at first ball)."""
+    from src.wpa import per_ball_wpa
+
+    df = pd.read_parquet(config.BALLS_PARQUET)
+    if "wp" not in df.columns:
+        pytest.skip("run `.venv/bin/python -m src.leverage` to write wp/li first")
+    b = per_ball_wpa(df)
+    assert (b["wpa_bat"] + b["wpa_bowl"]).abs().max() < 1e-12
+    first = b.groupby("match_id", sort=False).first()
+    assert np.isclose(b["wpa_bat"].sum(), (first["y"] - first["wp"]).sum())
