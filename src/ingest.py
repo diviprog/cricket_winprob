@@ -60,6 +60,9 @@ REQUIRED_COLUMNS = {
     "method": "D/L when DLS-affected",
     "overs": "scheduled overs for the innings (20 for a full match)",
     "batter_balls": "cumulative balls faced by striker (for M5 striker bucket)",
+    "batter": "striker facing this ball (M3 leverage attribution)",
+    "bowler": "bowler bowling this ball (M3 leverage attribution)",
+    "bat_pos": "striker's batting position 1..11 (M3 finisher hypothesis)",
 }
 
 
@@ -199,6 +202,13 @@ def build_ball_table(raw_csv=config.RAW_CSV) -> pd.DataFrame:
             "rrr": rrr.to_numpy(),
             "phase": phase,
             "striker_balls": striker_balls_before.to_numpy(),
+            # player identity, carried for M3 leverage attribution. `batter` is the
+            # striker who FACED this ball (so this ball's leverage is credited to
+            # them); `bowler` bowled it; `bat_pos` is the striker's batting order
+            # slot (1..11), the direct handle on the "finisher" hypothesis.
+            "batter": df["batter"].to_numpy(),
+            "bowler": df["bowler"].to_numpy(),
+            "bat_pos": df["bat_pos"].astype(int).to_numpy(),
             "y": y.to_numpy(),
         }
     )
