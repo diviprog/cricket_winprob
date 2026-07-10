@@ -98,3 +98,29 @@ def test_wpa_zero_sum_and_telescoping():
     assert (b["wpa_bat"] + b["wpa_bowl"]).abs().max() < 1e-12
     first = b.groupby("match_id", sort=False).first()
     assert np.isclose(b["wpa_bat"].sum(), (first["y"] - first["wp"]).sum())
+
+
+@data
+def test_dedrifted_wpa_removes_the_martingale_drift():
+    """De-drifted WPA: subtract the state-conditional (WP-binned) drift. It must
+    keep the per-ball zero-sum, drive the grand batting total from the +62 model
+    surplus to ~0, and leave ~0 mean WPA in every WP bin by construction."""
+    from src.wpa import DRIFT_BIN_WIDTH, per_ball_wpa
+
+    df = pd.read_parquet(config.BALLS_PARQUET)
+    if "wp" not in df.columns:
+        pytest.skip("run `.venv/bin/python -m src.leverage` to write wp/li first")
+    b = per_ball_wpa(df)
+
+    # raw drift is materially positive (the thing we are removing)...
+    assert b["wpa_bat"].mean() > 1e-4
+    # ...de-drifting removes it: grand total ~0 and per-ball mean ~0
+    assert abs(b["wpa_bat_dd"].sum()) < 1e-6
+    assert abs(b["wpa_bat_dd"].mean()) < 1e-10
+    # still exactly zero-sum per ball
+    assert (b["wpa_bat_dd"] + b["wpa_bowl_dd"]).abs().max() < 1e-12
+    # ~0 mean in every WP bin (that is what "state-conditional" buys)
+    bin_id = np.floor(np.clip(b["wp"].to_numpy(), 0.0, 1.0) / DRIFT_BIN_WIDTH).astype(int)
+    assert b.groupby(bin_id)["wpa_bat_dd"].mean().abs().max() < 1e-9
+    # de-drifting is a redistribution, not a rescaling: raw and dd differ per ball
+    assert not np.allclose(b["wpa_bat"], b["wpa_bat_dd"])
