@@ -32,10 +32,13 @@ src/
   player_leverage.py   # who FACES the highest-leverage balls (finisher hypothesis)
   wpa.py               # WPA clutch attribution + state-conditional de-drifting
   baseline.py          # M4 fitted logistic/XGBoost baselines + M5 licensing ablation
-  tail_diagnostics.py  # localizes the WP calibration gap (→ ball correlation)
-tests/                 # DP consistency, ingestion, leverage, baseline checks
+  tail_diagnostics.py  # localizes the WP calibration gap (over-dispersion, not marginals)
+  dependence_decomposition.py  # serial vs shared-latent: permutation-null lag profiles + ICC
+  correlation_experiment.py    # constructive block-bootstrap closure of the gap (6-seed)
+tests/                 # DP consistency, ingestion, leverage, baseline, dependence checks
 data/                  # raw + processed (gitignored)
 reports/               # generated .md findings (validation, leverage, wpa, baseline, ...)
+paper/                 # paper scaffold, verified references, claim→evidence map
 ```
 
 ## Setup
@@ -90,15 +93,25 @@ licensed**, a deliberate negative result.
 
 **Why the WP is imperfect, exactly (calibration diagnosis).** The 0.094-nat gap
 is **over-dispersion**: WP pushed too far toward 0/1 (over-confident on easy
-chases, under-confident in the live middle, worst `−0.11` at RRR 10–12). It is
-**not** tail-thinning (the gap is non-monotone in RRR) and **not** marginal
-mis-estimation (the model's per-ball scoring and wicket probabilities match
-empirical everywhere). With the marginals ruled out, the residual is provably
-**ball-to-ball correlation** (scoring bursts and wicket clusters). This exposes a
-fundamental tension: exact leverage requires the martingale, which requires ball
-independence — the very assumption that causes the calibration gap. Closing the
-gap would forfeit exact leverage, so the limitation is documented rather than
-traded away.
+chases, under-confident in the live middle, worst `−0.11` at RRR 10–12; the
+sign-flip shape persists out of sample). It is **not** tail-thinning (the gap is
+non-monotone in RRR) and **not** marginal mis-estimation (the model's full
+per-ball outcome distribution matches empirical to total variation ≤ 0.02 at
+every RRR). With the marginals ruled out, the residual is unmodelled
+**dependence given the state** — and a permutation-null decomposition identifies
+it: short-range **sequential run-scoring persistence** (~3–5 ball range, lag-1
++0.036 above the null), surviving innings and partnership demeaning. Innings
+heterogeneity contributes only ~18%, and wickets **anti-cluster** at short lags —
+so the mechanism is scoring bursts and their mirror-image droughts, not wicket
+clusters. A block-bootstrap simulator that injects the real dependence with
+marginals held fixed closes **26% of the gap** (6-seed replication; saturating at
+block length ≈ 20, consistent with the measured correlation range). This exposes
+a structural tension, **relative to the `(b,w,r)` state**: exact leverage
+requires the martingale, the martingale requires conditional ball independence
+on that state — the very assumption that causes the calibration gap. A richer
+state could in principle restore both, but the obvious enrichment is a proven
+null (M4). Closing the gap on this state forfeits exact leverage, so the
+limitation is documented rather than traded away.
 
 ## Status
 

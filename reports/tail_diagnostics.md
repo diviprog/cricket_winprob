@@ -74,9 +74,28 @@ Both the scoring marginal (boundary p4+p6) and the wicket marginal p(W) match em
 
 This makes the diagnosis airtight. If the one-ball marginals are correct AND balls were conditionally independent given (b,w,r), the backward-induction WP would equal E[y|b,w,r] exactly. It does not (Diagnostic 1). With the marginals ruled out, the only remaining cause is conditional DEPENDENCE -- ball-to-ball correlation given the state.
 
-## Reading -- the cheap fix is dead; the gap is genuine correlation
+## Out-of-sample robustness -- the shape on the held-out split
+
+Same Diagnostic-1 table on the held-out seasons. CAVEAT: unlike the train-on-train tables above, the era shift IS in frame here (the model is fit on lower-scoring seasons), so the LEVEL is expected to move toward under-prediction; the robustness check is whether the non-monotone sign-flip STRUCTURE persists, not the level.
+
+| rrr_slice | n | mean_markov_wp | empirical_winrate | gap |
+|---|---|---|---|---|
+| 0-6 | 1920 | 0.9604 | 0.9344 | 0.0260 |
+| 6-8 | 2675 | 0.7984 | 0.9372 | -0.1388 |
+| 8-10 | 4106 | 0.4465 | 0.7136 | -0.2671 |
+| 10-12 | 4515 | 0.1480 | 0.3003 | -0.1523 |
+| 12-14 | 1948 | 0.0495 | 0.1407 | -0.0912 |
+| 14-16 | 1077 | 0.0240 | 0.0752 | -0.0512 |
+| 16-18 | 476 | 0.0175 | 0.0462 | -0.0287 |
+| 18-22 | 479 | 0.0061 | 0.0021 | 0.0041 |
+| 22-40 | 558 | 0.0030 | 0.0000 | 0.0030 |
+
+Sign flip out of sample: **True**; worst slice RRR **8-10** at gap **-0.2671** (4,106 balls). The over-dispersion shape is not an in-sample artifact.
+
+## Reading -- the cheap fix is dead; the gap is genuine dependence, and it decomposes
 
 - **Not tail-thinning.** The gap is non-monotone and sign-flipping (Diagnostic 1), not a monotone right-tail deficit.
 - **Not marginal estimation.** Per-ball p(4)+p(6) matches empirical at every RRR (Diagnostic 2), so the martingale-preserving estimation fix would buy nothing.
-- **It is over-dispersed WP from unmodelled ball-to-ball CORRELATION.** Real innings have positively correlated balls (scoring bursts AND wicket clusters); independent draws under-disperse the innings trajectory, so the final outcome looks more determined than it is and WP is pushed too far toward 0/1. This is the same dependence the +0.037 lag-1 autocorrelation measures, now seen in the WP calibration.
-- **Consequence for the fix.** The cure must inject trajectory correlation (variance), which breaks the conditional independence behind WP(s)=sum_o p_o WP(s') -- and therefore the leverage definition. There is no cheap martingale-preserving fix. Next step is to QUANTIFY how much of the gap a correlation-honouring process recovers (block-bootstrap simulation vs independent draws, matched marginals) before committing to a rebuild -- and to decide whether the correlated WP is worth it given it forfeits exact leverage.
+- **It is over-dispersed WP from unmodelled dependence given (b,w,r).** Independent draws under-disperse the innings trajectory, so the final outcome looks more determined than it is and WP is pushed too far toward 0/1.
+- **The dependence is decomposed in dependence_decomposition.md:** it is short-range SEQUENTIAL run-scoring persistence (~3-5 ball range; lag-1 +0.036 above the permutation null), surviving innings and partnership demeaning. Innings-level heterogeneity contributes only ~18% of the signal, and wickets ANTI-cluster at short lags -- so the mechanism is scoring bursts and their mirror-image droughts, NOT wicket clusters. The burst/drought symmetry is exactly a two-sided variance effect, matching the sign-flip.
+- **Consequence for the fix.** The cure must inject sequential dependence (variance), which breaks the conditional independence behind WP(s)=sum_o p_o WP(s') -- and therefore the leverage definition -- RELATIVE TO the (b,w,r) state. There is no cheap martingale-preserving fix on this state; a richer state could in principle restore both properties, but the obvious enrichment (striker_balls) is a null (baseline_comparison.md). correlation_experiment.md quantifies the closure a dependence-honouring process recovers (~28%, a lower bound) before any rebuild decision.
