@@ -19,39 +19,61 @@ prose. Every number below is already produced and lives in `reports/`.
 > martingale, which in turn makes *leverage* (how much a ball can swing WP) and
 > *win probability added* (WPA) well-defined and exactly attributable; we use them
 > to confirm that finishers and death bowlers occupy the highest-leverage moments.
-> We then show the model's WP is systematically miscalibrated, and that this is not
-> incidental. Localizing the error, we rule out tail-thinning and marginal
-> mis-estimation (the model's per-ball outcome distribution matches empirical to a
-> total variation of ≤0.02 at every required-run-rate), leaving over-dispersion
-> from ball-to-ball correlation as the only possible cause. A block-bootstrap
-> simulator that injects real serial correlation while holding the marginals fixed
-> closes 28% of the calibration gap, saturating at partnership scale (~20 balls) —
-> a constructive lower bound confirming the diagnosis. The result is a structural
-> tradeoff: exact leverage requires the martingale, the martingale requires ball
-> independence, and independence is precisely what miscalibrates the WP. Exactly-
-> attributable leverage and well-calibrated WP cannot be obtained from the same
-> object.
+> We then show the model's WP is systematically miscalibrated, and that this is
+> not incidental. Localizing the error, we rule out tail-thinning and marginal
+> mis-estimation (the model's per-ball outcome distribution matches empirical to
+> a total variation of ≤0.02 at every required-run-rate), leaving unmodelled
+> dependence given the state as the only possible cause — and we identify it: a
+> permutation-null decomposition shows short-range sequential run-scoring
+> persistence (~3–5 balls; innings-level heterogeneity contributes only ~18%;
+> wickets, if anything, anti-cluster). A block-bootstrap simulator that injects
+> the real dependence while holding the marginals fixed closes 26% of the
+> calibration gap (replicated over six seeds), saturating at block lengths of
+> ~20 balls, consistent with the measured correlation range — a constructive
+> lower bound confirming the diagnosis. The result is a structural tradeoff
+> relative to the (balls, wickets, runs) state description: exact leverage
+> requires the martingale, the martingale requires conditional ball independence
+> on that state, and that independence is precisely what miscalibrates the WP.
+> Exactly-attributable leverage and well-calibrated WP cannot be obtained from
+> the same object over this state.
 
 ---
 
 ## Contribution statement (the spine)
 
-The paper's one novel claim, stated three ways so we keep it central:
+The paper's one novel claim — **scoped to the state description**, which is what
+makes it defensible:
 
 > An exactly-solvable win-probability (WP) model — estimate the one-ball outcome
-> distribution, derive WP by backward induction — is a **martingale by
-> construction**, which is exactly what makes leverage and WPA well-defined. But
-> the ball-independence that yields that exact martingale is **precisely what
-> miscalibrates the WP**. You cannot have both an exactly-attributable leverage
-> and a well-calibrated WP from the same object.
+> distribution, derive WP by backward induction over the `(b,w,r)` chase state —
+> is a **martingale by construction**, which is exactly what makes leverage and
+> WPA well-defined. But the conditional ball-independence **on that state** which
+> yields the exact martingale is precisely what miscalibrates the WP. **Relative
+> to the `(b,w,r)` filtration**, exactly-attributable leverage and well-calibrated
+> WP cannot be obtained from the same object.
 
-We do not claim the DP-WP model itself (that is prior art — WASP). We claim: (i)
-the tension above, (ii) a diagnostic method that isolates the cause of the
-calibration gap, and (iii) a constructive experiment quantifying it. The
-state-conditional WPA de-drifting is a secondary methodological contribution.
+Scoping caveats to state explicitly (a referee will otherwise supply them):
+- This is an empirical demonstration for this model class, not a theorem.
+- Enriching the state with the latent driving the dependence could in principle
+  restore both properties over the augmented state. M4 rules out the obvious
+  enrichment (`striker_balls`, a decisive null), not the class; the decomposition
+  shows the residual is short-range sequential, which no *pre-ball-observable*
+  scalar obviously captures — but say "one proxy ruled out", not "impossible".
+- A directly-fitted calibrated WP (≈ E[y|b,w,r]) is NOT a martingale along real
+  paths when the true process has hidden dependence, so it cannot host exact
+  leverage either — the two objects genuinely bifurcate.
+
+We do not claim the DP-WP model itself (prior art — WASP / the Clarke DP line).
+We claim: (i) the scoped tension above, (ii) the diagnostic that localizes the
+calibration gap and eliminates marginals, (iii) the **dependence decomposition**
+(permutation-null lag profiles: sequential scoring persistence of ~3–5 balls;
+heterogeneity only ~18%; wickets ANTI-cluster), (iv) the constructive
+block-bootstrap closure (26%, 6-seed replicated, marginals held fixed), and (v)
+state-conditional WPA de-drifting as a secondary method.
 
 **NOT the contribution (say so explicitly, up front):** the DP win-probability
-substrate (WASP did this), leverage index and WPA (borrowed from baseball).
+substrate (WASP did this; Clarke 1988 is the DP-in-cricket origin), leverage
+index and WPA (borrowed from baseball: Tango; Studeman).
 
 ---
 
@@ -65,17 +87,32 @@ substrate (WASP did this), leverage index and WPA (borrowed from baseball).
   miscalibrates WP — and this is structural, not a bug.
 - Contribution bullets. Explicit "what is prior art" paragraph.
 
-### 2. Related work  [CITATIONS TO SECURE — see checklist below]
-- **WASP** (Winning and Score Predictor), Brooker & Hogan — the DP ball-by-ball
-  cricket WP/score model. The direct substrate prior art; cite prominently and
-  position our DP-WP as *their idea, used as a substrate*.
-- **Duckworth–Lewis–Stern** — resource/state-value model for cricket targets.
-- **Baseball leverage index** — Tango ("Crucial Situations"); **WPA / win
-  expectancy** — Studeman. Source of LI/WPA we transfer.
-- Cricket Markov / outcome-model literature (Preston & Thomas; Bailey & Clarke;
-  others — TO FIND). Position our outcome-model + backward-induction framing.
+### 2. Related work  [ALL CITATIONS VERIFIED — full entries in `paper/references.md`]
+- **WASP** — Brooker & Hogan (Working Paper 44/2011, U. Canterbury; broadcast Sky
+  Sport NZ 2012). The DP ball-by-ball cricket WP/score model; the direct substrate
+  prior art. Cite prominently; position our DP-WP as *their construction, used as
+  a substrate*.
+- **The DP-in-cricket origin line** — Clarke (1988, JORS: DP optimal scoring
+  rates); Clarke & Norman (1999, JORS); Preston & Thomas (2000, JRSS-D: DP batting
+  strategy, chase vs target-setting asymmetry).
+- **Duckworth–Lewis(–Stern)** — Duckworth & Lewis (1998, JORS); Stern (2016,
+  JORS). Resource/state valuation; Stern's modern-scoring-rate update is direct
+  precedent for our era-adjustment finding.
+- **The Swartz line (closest neighbour, key contrast)** — Davis, Perera & Swartz
+  (2015, ANZJS): ball-by-ball T20 simulator whose outcome probabilities condition
+  on batsman and bowler via hierarchical empirical Bayes. They take the
+  player-latent route we deliberately exclude to keep the state small and WP
+  exactly solvable; our M4 ablation + dependence decomposition quantify what that
+  exclusion costs.
+- **Baseball LI/WPA** — Tango ("Crucial Situations", THT 2006; *The Book* 2007);
+  Studeman ("The One About Win Probability", THT). Source of the concepts we
+  transfer.
+- **Cricket pressure index** — Bhattacharjee & Lemmer (2016, IJSSC 11(5),
+  683–692). Overlaps leverage in intent; distinguish: heuristic composite vs the
+  exact MAD of a derived martingale.
 - The gap in the literature: nobody states the leverage↔calibration tension, nor
-  isolates the calibration error to ball correlation constructively.
+  isolates the calibration error to short-range sequential dependence
+  constructively.
 
 ### 3. The exact Markov WP (substrate, §2 prior art made precise)
 - State `(b,w,r)`; the one estimated object `p_o(state)` over {0..6,W}.
@@ -132,31 +169,59 @@ substrate (WASP did this), leverage index and WPA (borrowed from baseball).
   hard side of the sign-flip — the defect is over-dispersion, not uniform
   under-confidence.
 - Elimination: correct marginals + independence ⇒ WP = E[y|state]; it doesn't ⇒
-  conditional dependence (correlation).
+  conditional dependence given the state.
+- **OOS robustness:** the same gap table on the held-out split (era shift in
+  frame, so the level moves; the check is the non-monotone sign-flip SHAPE).
+  Numbers from `tail_diagnostics.md` §"Out-of-sample robustness".
 
-### 7. Constructive confirmation (the keystone)
-- `src/correlation_experiment.py`, `reports/correlation_experiment.md`.
-- **Part A — full marginal:** TV(model, empirical) over all 8 outcomes ≤ **0.018**,
-  and ≤ **0.0006** in the big-gap bands. Completes the elimination.
-- **Part B — block-bootstrap simulator, dependence knob K:**
-  - `model_iid` reproduces the Markov DP WP (max |diff| ~0.002) → simulator valid.
-  - Independence references agree (markov 0.0624 ~ model_iid 0.0637 ~ block_K1 0.0631).
-  - Mean |gap| falls to a minimum **0.0454 at K=20** — a **28% reduction** vs
-    independence — then plateaus/re-widens (U-shape).
-  - **Marginal fidelity:** realized per-ball distribution drifts from K=1 by ≤ TV
-    **0.0024** across all K ⇒ closure is correlation, not marginal change.
+### 7. What the dependence IS (decomposition) + constructive confirmation (keystone)
+- **7a. Decomposition** (`src/dependence_decomposition.py`,
+  `reports/dependence_decomposition.md`): within-innings permutation null —
+  shuffling within an innings PRESERVES the innings-latent contribution to pair
+  statistics while destroying ordering, so `observed > null band` = dependence
+  beyond innings heterogeneity, and the null centre estimates the heterogeneity
+  share. Discriminator validated on synthetics (iid not flagged; pure innings
+  random effect absorbed; AR(1) flagged).
+  - Runs residuals: lag-1 **+0.0436** vs null centre **+0.0079** → heterogeneity
+    share **18%**; excess decays +0.036/+0.021/+0.008 at lags 1/3/5, gone by
+    ~10–20 → **short-range sequential scoring persistence (~3–5 balls)**.
+    Survives innings AND partnership demeaning → ball-adjacent, not a latent.
+  - Cross-check: null centre (+0.0079) ≈ innings ICC (+0.0081).
+  - **Wickets ANTI-cluster** at lags 1–3 (below null). "Wicket clusters" is dead;
+    the mechanism is scoring bursts and their mirror-image droughts — a two-sided
+    variance effect matching the sign-flip.
+- **7b. Constructive closure** (`src/correlation_experiment.py`,
+  `reports/correlation_experiment.md`), replicated over 6 seeds:
+  - **Part A — full marginal:** TV(model, empirical) over all 8 outcomes ≤
+    **0.018**, ≤ **0.0006** in the big-gap bands. Completes the elimination.
+  - `model_iid` reproduces the Markov DP WP; independence references agree at
+    every seed (markov 0.0624 ~ model_iid 0.0618 ~ block_K1 0.0613).
+  - Mean |gap| minimum **0.0451 at K=20** — a **26% reduction** vs independence;
+    K=20 < K=40 in **6/6 seeds** and separated from every seed's K=1 → the
+    saturation is resolved, and its scale is consistent with the ~3–5-ball
+    correlation range (cumulative block variance saturates once K ≫ range).
+  - **Marginal fidelity:** block modes drift from K=1 by ≤ TV **0.0033** across
+    all seeds ⇒ the closure is dependence, not marginal change.
   - Closes in **both directions** (up on hard, down on easy) = over-dispersion.
-  - **Partnership-scale:** saturates at K≈20 (~3 overs) — a within-partnership set-
-    batsman persistence, same source as the +0.037 lag-1 autocorrelation.
-  - **28% is a lower bound** the method cannot exceed (boundary breakage + spliced
-    segments diverge from sim state). Full contribution needs a generative
-    correlated model — which forfeits the exact martingale (→ §8).
+  - **Scattered-arm negative result (report honestly):** the designed
+    heterogeneity-only control degenerated — per-ball re-matching within a donor
+    innings makes it a nearest-neighbour replay of empirical outcomes (closed
+    MORE than whole real trajectories; broke its own marginal control, TV 0.018).
+    Kept as a methodological caution; the mechanism question is settled by 7a.
+  - **26% is a lower bound** the method cannot exceed (boundary breakage +
+    spliced segments diverge from sim state). Full contribution needs a
+    generative dependent model — which forfeits the exact martingale (→ §8).
 
 ### 8. The tradeoff (tie it together)
-- Formal statement: leverage/WPA require the martingale; the martingale requires
-  conditional independence given `(b,w,r)`; independence causes the over-dispersion
-  of §6–7. Therefore exact leverage and WP calibration cannot be had together from
-  one object.
+- Formal statement, **scoped**: leverage/WPA require the martingale; the
+  martingale requires conditional independence given `(b,w,r)`; that independence
+  causes the over-dispersion of §6–7. Therefore exact leverage and WP calibration
+  cannot be had together from one object **over the `(b,w,r)` state**.
+- State-enrichment escape hatch, addressed: a richer state could restore both in
+  principle; M4's `striker_balls` null closes the obvious route; the residual is
+  short-range sequential, not obviously capturable by any pre-ball-observable
+  scalar. A directly-fitted calibrated WP is not a martingale along real paths,
+  so it cannot host exact leverage either.
 - M2.5's choice of independence for leverage was forced, not incidental.
 - Practical resolutions (state them, don't necessarily build): (a) two surfaces —
   exact-martingale WP for leverage, recalibrated WP for reporting; (b) a
@@ -164,11 +229,12 @@ substrate (WASP did this), leverage index and WPA (borrowed from baseball).
 
 ### 9. Limitations & future work
 - Single innings type (chases) and single league (IPL) — generalizability untested.
-- Block bootstrap under-measures correlation; generative Markov-switching model is
-  the way to get the full number (and it forfeits exact leverage — the tension in
-  action).
-- Diagnosis is in-sample on train (by design, to isolate structure) — confirm
-  out-of-sample as a robustness check.
+- Block bootstrap under-measures the dependence; a generative Markov-switching
+  model is the way to get the full number (and it forfeits exact leverage — the
+  tension in action).
+- The heterogeneity-only simulator control is an open design problem (our
+  scattered arm degenerated); the permutation-null decomposition carries the
+  mechanism claim alone.
 - Run-outs folded into `W` (spec 01); no separate fielding attribution.
 
 ### 10. Conclusion
@@ -184,27 +250,35 @@ substrate (WASP did this), leverage index and WPA (borrowed from baseball).
 - **F1** Reliability curves, held-out (`reliability.png`, `baseline_reliability.png`).
 - **F2** Leverage by over (bar), highlighting the death spike to 2.67
   (`leverage_validation.md`).
-- **T2** Calibration gap by RRR showing the sign-flip (`tail_diagnostics.md` Diag 1).
+- **T2** Calibration gap by RRR showing the sign-flip (`tail_diagnostics.md` Diag 1),
+  with the OOS column alongside.
 - **T3** Full one-ball marginal TV by RRR (`correlation_experiment.md` Part A).
-- **F3 (headline)** Mean |gap| vs block length K — the U-shape bottoming at K=20,
-  with the marginal-fidelity TV overlaid flat near 0 (`correlation_experiment.md`).
-- **F4** WPA clutch: wpa_high vs wpa_low scatter, Dhoni/ABdV annotated (`wpa.md`).
+- **F3** Lag profile of runs residuals with the permutation-null band — observed
+  decaying curve exiting the flat band at lags 1–5
+  (`dependence_decomposition.md`). The mechanism figure.
+- **F4 (headline)** Mean |gap| vs block length K with cross-seed min–max bands,
+  bottoming at K=20; marginal-fidelity TV overlaid flat near 0
+  (`correlation_experiment.md`).
+- **F5** WPA clutch: wpa_high vs wpa_low scatter, Dhoni/ABdV annotated (`wpa.md`).
 - **T4 (optional)** De-drift cross-role inversion examples (`wpa.md`).
 
 ---
 
 ## What still needs doing before submission (priority order)
 
-1. **Secure citations** (§2). Confirm exact refs for WASP (Brooker & Hogan / Hogan),
-   DLS, Tango leverage, Studeman WPA, and 2–3 cricket Markov/WP academic papers.
-   *I flagged these from memory — verify each; do not cite blind.*
-2. **Out-of-sample robustness** for §6 diagnosis (re-run the gap localization on the
-   held-out split; confirm the sign-flip persists).
-3. **Statistical CIs** on the leverage/player results (reuse the clustered bootstrap
-   from `baseline.py`) — §4 currently reports point estimates.
-4. **(Stretch, venue-dependent)** external benchmark (bookmaker closing odds or WASP)
-   and/or a second T20 league for generalizability — only if targeting a journal.
-5. Decide format: draft in Markdown, convert to LaTeX (arXiv) once structure holds.
+1. ~~Secure citations~~ **DONE** — all verified, full entries + relevance notes in
+   `paper/references.md` (incl. the Swartz line and the Clarke DP origin).
+2. ~~Out-of-sample robustness~~ **DONE** — OOS section in `tail_diagnostics.md`.
+3. ~~Error bars on the K-curve~~ **DONE** — 6-seed replication; saturation gates
+   pass (6/6 seeds).
+4. ~~Mechanism disentangling~~ **DONE** — `dependence_decomposition.md` (sequential,
+   ~18% heterogeneity, wickets anti-cluster).
+5. **Statistical CIs** on the leverage/player results (reuse the clustered
+   bootstrap from `baseline.py`) — §4 currently reports point estimates.
+6. **(Stretch, venue-dependent)** external benchmark (bookmaker closing odds or
+   WASP) and/or a second T20 league for generalizability — only if targeting a
+   journal.
+7. Decide format: draft in Markdown, convert to LaTeX (arXiv) once structure holds.
 
 ## Claim → evidence map (for grounding while writing)
 
@@ -219,7 +293,12 @@ substrate (WASP did this), leverage index and WPA (borrowed from baseball).
 | M5 not licensed | striker +0.00041, CI straddles 0 | baseline_comparison.md |
 | logistic beats XGBoost | log loss 0.4157 | baseline_comparison.md |
 | gap is over-dispersion | sign-flip, worst −0.112 @ RRR 10–12 | tail_diagnostics.md |
+| shape persists OOS | sign flip True; +0.026 easy / −0.267 @ 8–10 | tail_diagnostics.md |
 | not marginals | shortfall ≤0.006/0.008 | tail_diagnostics.md |
 | full marginal matches | TV ≤0.018 (≤0.0006 big-gap bands) | correlation_experiment.md |
-| correlation closes gap | 28% at K=20, fidelity TV ≤0.0024 | correlation_experiment.md |
-| partnership scale | saturates K≈20 | correlation_experiment.md |
+| dependence is sequential | lag-1 +0.0436 vs null +0.0079 (18% het) | dependence_decomposition.md |
+| ~3–5 ball range | excess +0.036/+0.021/+0.008 @ lags 1/3/5 | dependence_decomposition.md |
+| wickets anti-cluster | lag 1–3 below null band | dependence_decomposition.md |
+| dependence closes gap | 26% at K=20, 6/6 seeds, block fidelity ≤0.0033 | correlation_experiment.md |
+| saturation resolved | K=20 < K=40 in 6/6 seeds | correlation_experiment.md |
+| scattered arm degenerate | gap 0.019 < whole-trajectory 0.046; TV 0.018 | correlation_experiment.md |
