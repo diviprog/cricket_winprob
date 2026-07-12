@@ -279,6 +279,8 @@ index and WPA (borrowed from baseball: Tango; Studeman).
    WASP) and/or a second T20 league for generalizability — only if targeting a
    journal.
 7. Decide format: draft in Markdown, convert to LaTeX (arXiv) once structure holds.
+   **In progress:** §6–7 drafted in `paper/draft_06_07.md` (the spine; all numbers
+   cross-checked against the three source reports).
 
 ## Claim → evidence map (for grounding while writing)
 
