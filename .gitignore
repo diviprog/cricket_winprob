@@ -19,5 +19,8 @@ wheels/
 # Personal Claude Code instructions (private)
 CLAUDE.local.md
 
+# Overleaf working copy: its own git repo, pushes to git.overleaf.com
+paper/overleaf/
+
 # Regenerated report artifacts
 reports/*.png
