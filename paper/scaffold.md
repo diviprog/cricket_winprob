@@ -279,8 +279,11 @@ index and WPA (borrowed from baseball: Tango; Studeman).
    WASP) and/or a second T20 league for generalizability — only if targeting a
    journal.
 7. Decide format: draft in Markdown, convert to LaTeX (arXiv) once structure holds.
-   **In progress:** §6–7 drafted in `paper/draft_06_07.md` (the spine; all numbers
-   cross-checked against the three source reports).
+   **In progress:** §3–5 (`paper/draft_03_05.md`), §6–7 (`paper/draft_06_07.md`),
+   §8–10 (`paper/draft_08_10.md`) drafted, all numbers cross-checked against the
+   source reports; figures F3/F4 rendered (`paper/make_figures.py`,
+   `paper/figures/`). Remaining prose: §1 intro, §2 related work, abstract polish,
+   then assembly + LaTeX.
 
 ## Claim → evidence map (for grounding while writing)
 
