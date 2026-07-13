@@ -17,8 +17,14 @@ from src.wp_markov import check_consistency, solve_wp, terminal_value
 # WPs below use thresholds appropriate to that (a realistic model pushes them
 # closer to the spec's ~1 / ~0 ideals).
 HAND_DIST = {
-    "0": 0.31, "1": 0.39, "2": 0.065, "3": 0.005,
-    "4": 0.12, "5": 0.001, "6": 0.058, "W": 0.051,
+    "0": 0.31,
+    "1": 0.39,
+    "2": 0.065,
+    "3": 0.005,
+    "4": 0.12,
+    "5": 0.001,
+    "6": 0.058,
+    "W": 0.051,
 }
 
 
@@ -44,12 +50,12 @@ def test_transition_decrements_b_by_one():
 
 
 def test_terminal_conditions():
-    assert terminal_value((10, 5, 0)) == 1.0      # target reached
-    assert terminal_value((10, 5, -3)) == 1.0     # overshoot
-    assert terminal_value((10, 0, 20)) == 0.0     # all out
-    assert terminal_value((0, 5, 5)) == 0.0       # out of balls, behind
-    assert terminal_value((0, 5, 1)) == 0.5       # finished level -> tie
-    assert terminal_value((10, 5, 20)) is None    # live
+    assert terminal_value((10, 5, 0)) == 1.0  # target reached
+    assert terminal_value((10, 5, -3)) == 1.0  # overshoot
+    assert terminal_value((10, 0, 20)) == 0.0  # all out
+    assert terminal_value((0, 5, 5)) == 0.0  # out of balls, behind
+    assert terminal_value((0, 5, 1)) == 0.5  # finished level -> tie
+    assert terminal_value((10, 5, 20)) is None  # live
 
 
 def test_wp_consistency_random_sample(wp, model):
@@ -67,8 +73,8 @@ def test_wp_range_valid(wp):
 def test_sanity_wps(wp):
     # Thresholds relaxed for the crude homogeneous scaffold (spec 03 quotes the
     # ideal ~1 / ~0 for a realistic model).
-    assert wp((6, 5, 2)) > 0.85     # 2 needed off 6, 5 in hand -> very likely
-    assert wp((6, 1, 40)) < 0.02    # 40 off 6, last pair -> near hopeless
+    assert wp((6, 5, 2)) > 0.85  # 2 needed off 6, 5 in hand -> very likely
+    assert wp((6, 1, 40)) < 0.02  # 40 off 6, last pair -> near hopeless
     assert 0.30 < wp((120, 10, 170)) < 0.70  # plausible pre-chase number
 
 

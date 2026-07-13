@@ -41,7 +41,7 @@ import pandas as pd
 
 from . import config
 
-HIGH_LI = 2.0    # "high leverage" = a ball worth >= 2x the average ball's swing
+HIGH_LI = 2.0  # "high leverage" = a ball worth >= 2x the average ball's swing
 MIN_BALLS = 500  # career balls for a stable total/rate
 
 # WP-bin width for the state-conditional drift estimate (see per_ball_wpa). The
@@ -112,18 +112,20 @@ def _agg(b: pd.DataFrame, who: str, side: str) -> pd.DataFrame:
     """
     raw, dd = f"wpa_{side}", f"wpa_{side}_dd"
     g = b.groupby(who)
-    out = pd.DataFrame({
-        "balls": g.size(),
-        "total_wpa": g[raw].sum(),            # raw, shown for transparency
-        "total_wpa_dd": g[dd].sum(),          # de-drifted -- the fair career rank
-        "wpa_dd_per100": 100 * g[dd].mean(),
-        "mean_li": g["li"].mean(),
-    })
+    out = pd.DataFrame(
+        {
+            "balls": g.size(),
+            "total_wpa": g[raw].sum(),  # raw, shown for transparency
+            "total_wpa_dd": g[dd].sum(),  # de-drifted -- the fair career rank
+            "wpa_dd_per100": 100 * g[dd].mean(),
+            "mean_li": g["li"].mean(),
+        }
+    )
     hi = b[b["li"] >= HIGH_LI].groupby(who)
     lo = b[b["li"] < HIGH_LI].groupby(who)
     out["n_high"] = hi.size()
-    out["wpa_high_dd"] = hi[dd].mean()   # de-drifted per-ball WPA in clutch moments
-    out["wpa_low_dd"] = lo[dd].mean()    # de-drifted per-ball WPA in ordinary moments
+    out["wpa_high_dd"] = hi[dd].mean()  # de-drifted per-ball WPA in clutch moments
+    out["wpa_low_dd"] = lo[dd].mean()  # de-drifted per-ball WPA in ordinary moments
     out["n_high"] = out["n_high"].fillna(0).astype(int)
     return out[out["balls"] >= MIN_BALLS]
 
@@ -146,7 +148,9 @@ def _fmt(df: pd.DataFrame, cols: list[str]) -> str:
 def main() -> int:
     df = pd.read_parquet(config.BALLS_PARQUET)
     if "wp" not in df.columns or "li" not in df.columns:
-        raise SystemExit("FATAL: need `wp` and `li` -- run `.venv/bin/python -m src.leverage` first.")
+        raise SystemExit(
+            "FATAL: need `wp` and `li` -- run `.venv/bin/python -m src.leverage` first."
+        )
 
     b = per_ball_wpa(df)
 
@@ -168,14 +172,45 @@ def main() -> int:
     bowl_gain = (bowls["total_wpa_dd"] - bowls["total_wpa"]).idxmax()
     ex_bat, ex_bowl = bats.loc[bat_drop], bowls.loc[bowl_gain]
 
-    bcols = ["player", "balls", "total_wpa", "total_wpa_dd", "wpa_dd_per100",
-             "mean_li", "n_high", "wpa_high_dd", "wpa_low_dd"]
-    top_bat_total = bats.sort_values("total_wpa_dd", ascending=False).head(20).reset_index().rename(columns={"batter": "player"})
-    top_bowl_total = bowls.sort_values("total_wpa_dd", ascending=False).head(20).reset_index().rename(columns={"bowler": "player"})
+    bcols = [
+        "player",
+        "balls",
+        "total_wpa",
+        "total_wpa_dd",
+        "wpa_dd_per100",
+        "mean_li",
+        "n_high",
+        "wpa_high_dd",
+        "wpa_low_dd",
+    ]
+    top_bat_total = (
+        bats.sort_values("total_wpa_dd", ascending=False)
+        .head(20)
+        .reset_index()
+        .rename(columns={"batter": "player"})
+    )
+    top_bowl_total = (
+        bowls.sort_values("total_wpa_dd", ascending=False)
+        .head(20)
+        .reset_index()
+        .rename(columns={"bowler": "player"})
+    )
     # clutch rate: de-drifted per-ball WPA on high-LI balls, min sample of clutch balls
     clutch_cols = ["player", "balls", "n_high", "wpa_high_dd", "wpa_low_dd", "total_wpa_dd"]
-    clutch_bat = bats[bats["n_high"] >= 100].sort_values("wpa_high_dd", ascending=False).head(20).reset_index().rename(columns={"batter": "player"})
-    clutch_bowl = bowls[bowls["n_high"] >= 100].sort_values("wpa_high_dd", ascending=False).head(20).reset_index().rename(columns={"bowler": "player"})
+    clutch_bat = (
+        bats[bats["n_high"] >= 100]
+        .sort_values("wpa_high_dd", ascending=False)
+        .head(20)
+        .reset_index()
+        .rename(columns={"batter": "player"})
+    )
+    clutch_bowl = (
+        bowls[bowls["n_high"] >= 100]
+        .sort_values("wpa_high_dd", ascending=False)
+        .head(20)
+        .reset_index()
+        .rename(columns={"bowler": "player"})
+    )
 
     L = [
         "# Win Probability Added (WPA) -- clutch attribution",
@@ -225,10 +260,10 @@ def main() -> int:
         "",
         "## Batsmen -- pure clutch rate (de-drifted per-ball WPA in high-leverage moments)",
         "",
-        f"Ranked by `wpa_high_dd` among batters with >= 100 high-LI balls faced -- who "
-        f"actually converts the big moments, rate-adjusted so volume doesn't dominate. "
-        f"De-drifting matters most here: high-LI balls carry the heaviest drift, so the "
-        f"raw clutch rate was the most inflated number in the report.",
+        "Ranked by `wpa_high_dd` among batters with >= 100 high-LI balls faced -- who "
+        "actually converts the big moments, rate-adjusted so volume doesn't dominate. "
+        "De-drifting matters most here: high-LI balls carry the heaviest drift, so the "
+        "raw clutch rate was the most inflated number in the report.",
         "",
         _fmt(clutch_bat[clutch_cols], clutch_cols),
         "",
@@ -256,11 +291,15 @@ def main() -> int:
     ]
     out = config.REPORTS / "wpa.md"
     out.write_text("\n".join(L))
-    print(f"zero_sum_max={zero_sum:.2e} (dd {zero_sum_dd:.2e})  "
-          f"total_bat_wpa raw={total_bat:+.3f} dd={total_bat_dd:+.2e}  telescope={telescope:+.3f}")
-    print(f"drift/ball={drift_per_ball:+.5f}  example: {bat_drop} bat "
-          f"{ex_bat['total_wpa']:+.2f}->{ex_bat['total_wpa_dd']:+.2f}, "
-          f"{bowl_gain} bowl {ex_bowl['total_wpa']:+.2f}->{ex_bowl['total_wpa_dd']:+.2f}")
+    print(
+        f"zero_sum_max={zero_sum:.2e} (dd {zero_sum_dd:.2e})  "
+        f"total_bat_wpa raw={total_bat:+.3f} dd={total_bat_dd:+.2e}  telescope={telescope:+.3f}"
+    )
+    print(
+        f"drift/ball={drift_per_ball:+.5f}  example: {bat_drop} bat "
+        f"{ex_bat['total_wpa']:+.2f}->{ex_bat['total_wpa_dd']:+.2f}, "
+        f"{bowl_gain} bowl {ex_bowl['total_wpa']:+.2f}->{ex_bowl['total_wpa_dd']:+.2f}"
+    )
     print(f"batters ranked: {len(bats)}  bowlers ranked: {len(bowls)}")
     print(f"Wrote {out}")
     return 0

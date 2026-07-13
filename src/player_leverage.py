@@ -41,31 +41,37 @@ def _fmt(df: pd.DataFrame, cols: list[str]) -> str:
 
 def batsman_leverage(df: pd.DataFrame) -> pd.DataFrame:
     g = df.groupby("batter")
-    out = pd.DataFrame({
-        "balls": g.size(),
-        "mean_li": g["li"].mean(),
-        "median_li": g["li"].median(),
-        "median_pos": g["bat_pos"].median(),
-        "death_share": g["phase"].apply(lambda s: (s == "death").mean()),
-    })
+    out = pd.DataFrame(
+        {
+            "balls": g.size(),
+            "mean_li": g["li"].mean(),
+            "median_li": g["li"].median(),
+            "median_pos": g["bat_pos"].median(),
+            "death_share": g["phase"].apply(lambda s: (s == "death").mean()),
+        }
+    )
     return out[out["balls"] >= MIN_BALLS].sort_values("mean_li", ascending=False)
 
 
 def bowler_leverage(df: pd.DataFrame) -> pd.DataFrame:
     g = df.groupby("bowler")
-    out = pd.DataFrame({
-        "balls": g.size(),
-        "mean_li": g["li"].mean(),
-        "median_li": g["li"].median(),
-        "death_share": g["phase"].apply(lambda s: (s == "death").mean()),
-    })
+    out = pd.DataFrame(
+        {
+            "balls": g.size(),
+            "mean_li": g["li"].mean(),
+            "median_li": g["li"].median(),
+            "death_share": g["phase"].apply(lambda s: (s == "death").mean()),
+        }
+    )
     return out[out["balls"] >= MIN_BALLS].sort_values("mean_li", ascending=False)
 
 
 def main() -> int:
     df = pd.read_parquet(config.BALLS_PARQUET)
     if "li" not in df.columns:
-        raise SystemExit("FATAL: `li` not in ball table -- run `uv run python -m src.leverage` first.")
+        raise SystemExit(
+            "FATAL: `li` not in ball table -- run `uv run python -m src.leverage` first."
+        )
 
     # --- structural signal: mean LI by batting position ------------------------
     pos = df.groupby("bat_pos")["li"].agg(["mean", "count"]).round(3)
@@ -97,8 +103,11 @@ def main() -> int:
     # (high death share, low leverage). So the finisher signal is the correlation
     # over the batting order proper (1-7); the full-range 1-11 correlation flips
     # sign purely because of that dead tail, and is reported to show the shape.
-    r_pos_meat = float(np.corrcoef(pos.loc[pos["bat_pos"] <= 7, "bat_pos"],
-                                   pos.loc[pos["bat_pos"] <= 7, "mean"])[0, 1])
+    r_pos_meat = float(
+        np.corrcoef(pos.loc[pos["bat_pos"] <= 7, "bat_pos"], pos.loc[pos["bat_pos"] <= 7, "mean"])[
+            0, 1
+        ]
+    )
     r_pos_all = float(np.corrcoef(pos["bat_pos"], pos["mean"])[0, 1])
 
     L = [
@@ -118,8 +127,10 @@ def main() -> int:
         "If finishers face the highest-leverage balls, mean LI should climb down the "
         "order toward the lower-middle finisher slots.",
         "",
-        _fmt(pos.rename(columns={"mean": "mean_li", "count": "balls"}),
-             ["bat_pos", "mean_li", "balls", "death_share"]),
+        _fmt(
+            pos.rename(columns={"mean": "mean_li", "count": "balls"}),
+            ["bat_pos", "mean_li", "balls", "death_share"],
+        ),
         "",
         f"The profile is **hump-shaped**: mean LI rises from the openers to a peak at "
         f"the finisher slots (positions 6-7, ~1.3x the average ball), then collapses "
@@ -172,11 +183,11 @@ def main() -> int:
         "",
         "### Caveat inherited from the model",
         "",
-        f"LI is a dispersion quantity and inherits the Markov model's residual lag-1 "
-        f"autocorrelation (+0.037, see `leverage_validation.md`): the per-ball "
-        f"leverage is slightly understated where scoring clusters. This biases every "
-        f"player's mean LI in the SAME direction, so the RANKING -- which is the "
-        f"deliverable -- is robust; the absolute LI levels carry that error bound.",
+        "LI is a dispersion quantity and inherits the Markov model's residual lag-1 "
+        "autocorrelation (+0.037, see `leverage_validation.md`): the per-ball "
+        "leverage is slightly understated where scoring clusters. This biases every "
+        "player's mean LI in the SAME direction, so the RANKING -- which is the "
+        "deliverable -- is robust; the absolute LI levels carry that error bound.",
         "",
     ]
     out = config.REPORTS / "player_leverage.md"

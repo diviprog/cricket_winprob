@@ -145,7 +145,9 @@ def fit_rrr(train: pd.DataFrame, alpha: float = 10.0, weights: np.ndarray | None
     reproduces the original M2 fit bit-for-bit (unit weights collapse the weighted
     sums back to value counts).
     """
-    w_arr = np.ones(len(train), dtype=float) if weights is None else np.asarray(weights, dtype=float)
+    w_arr = (
+        np.ones(len(train), dtype=float) if weights is None else np.asarray(weights, dtype=float)
+    )
     base = fit_base(train, weights=w_arr)
 
     train = train.assign(rrr_bin=train["rrr"].map(rrr_bin))

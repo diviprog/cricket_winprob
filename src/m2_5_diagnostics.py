@@ -27,6 +27,7 @@ from sklearn.model_selection import GroupKFold
 
 from . import config
 from .outcome_model import fit_base, fit_rrr, make_outcome_model
+
 # Reuse M2 metric functions verbatim -- identical footing to the M2 report.
 from .validation import brier, ece, log_loss, reliability_curve
 from .wp_markov import solve_wp
@@ -192,7 +193,9 @@ def diag2(df: pd.DataFrame, cal_season: str = "2023") -> tuple[list[str], dict]:
         "pure-RRR logistic (refit)": m(p_log),
     }
 
-    gap_before = rows["RRR Markov (raw, refit)"]["brier"] - rows["pure-RRR logistic (refit)"]["brier"]
+    gap_before = (
+        rows["RRR Markov (raw, refit)"]["brier"] - rows["pure-RRR logistic (refit)"]["brier"]
+    )
     best_after = min(rows["RRR Markov + isotonic"]["brier"], rows["RRR Markov + Platt"]["brier"])
     gap_after = best_after - rows["pure-RRR logistic (refit)"]["brier"]
     closed = (gap_before - gap_after) / gap_before if gap_before else float("nan")
@@ -225,7 +228,7 @@ def diag2(df: pd.DataFrame, cal_season: str = "2023") -> tuple[list[str], dict]:
         "outcome distribution. It breaks the martingale consistency between the outcome "
         "model and WP. Therefore leverage in M3 (swing = MAD of the next-ball WP under "
         "the martingale) cannot use the recalibrated WP without losing the clean "
-        "\"MAD of a martingale\" interpretation. This is a real tradeoff for M3, left open.",
+        '"MAD of a martingale" interpretation. This is a real tradeoff for M3, left open.',
         "",
     ]
     return lines, {"rows": rows, "closed": closed, "gap_before": gap_before, "gap_after": gap_after}
@@ -338,7 +341,7 @@ def diag4(df: pd.DataFrame, fitted_full: dict) -> tuple[list[str], dict]:
 
     rows = {}
     for name in MODEL_ORDER:
-        in_gap = float(p_tr[name].mean() - y_tr.mean())   # mean pred - mean actual, TRAIN
+        in_gap = float(p_tr[name].mean() - y_tr.mean())  # mean pred - mean actual, TRAIN
         out_gap = float(p_te[name].mean() - y_te.mean())  # ... HELD-OUT
         rows[name] = {
             "in_brier": brier(p_tr[name], y_tr),
@@ -387,12 +390,17 @@ def diag4(df: pd.DataFrame, fitted_full: dict) -> tuple[list[str], dict]:
             f"0.5*|{rrr['widening']:.4f}|) -> claim SUPPORTED: the logistic is materially "
             f"more era-robust."
             if robust_claim
-            else f"The logistic widening is NOT much smaller than the Markov's -> claim "
-            f"NOT supported; both degrade similarly under the era shift."
+            else "The logistic widening is NOT much smaller than the Markov's -> claim "
+            "NOT supported; both degrade similarly under the era shift."
         ),
         "",
     ]
-    return lines, {"rows": rows, "mem_share": mem_share, "era_share": era_share, "robust_claim": robust_claim}
+    return lines, {
+        "rows": rows,
+        "mem_share": mem_share,
+        "era_share": era_share,
+        "robust_claim": robust_claim,
+    }
 
 
 # ---------------------------------------------------------------------------

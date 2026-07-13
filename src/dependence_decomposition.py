@@ -121,8 +121,9 @@ def icc_oneway(x: np.ndarray, codes: np.ndarray) -> float:
     return float((msb - msw) / (msb + (n0 - 1) * msw))
 
 
-def within_group_shuffle(x: np.ndarray, sorted_codes: np.ndarray,
-                         rng: np.random.Generator) -> np.ndarray:
+def within_group_shuffle(
+    x: np.ndarray, sorted_codes: np.ndarray, rng: np.random.Generator
+) -> np.ndarray:
     """Return x with values shuffled within each contiguous group (codes must be
     sorted). Positions keep their group; values move within it."""
     order = np.lexsort((rng.random(len(x)), sorted_codes))
@@ -202,7 +203,11 @@ def observed_and_null(x, inn, part, n_perm=N_PERM, seed=SEED) -> tuple[dict, dic
 
 
 def band(draws: np.ndarray) -> tuple[float, float, float]:
-    return float(np.nanmean(draws)), float(np.nanpercentile(draws, 2.5)), float(np.nanpercentile(draws, 97.5))
+    return (
+        float(np.nanmean(draws)),
+        float(np.nanpercentile(draws, 2.5)),
+        float(np.nanpercentile(draws, 97.5)),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -234,26 +239,34 @@ def verdict(obs: dict, null: dict, icc_inn: float, icc_part: float) -> dict:
     survives_part_demean = obs[kp] > hip
 
     # shape: excess over null mean at each innings-scope lag, state variant
-    excess = {lag: obs[("state", "innings", lag)] - band(null[("state", "innings", lag)])[0]
-              for lag in LAGS}
+    excess = {
+        lag: obs[("state", "innings", lag)] - band(null[("state", "innings", lag)])[0]
+        for lag in LAGS
+    }
     e1 = excess[1]
     tail = np.nanmean([excess[20], excess[30]])
     decays = bool(e1 > 0 and tail < 0.5 * e1)
 
     if not beyond_innings:
         label = "heterogeneity-only"
-        text = ("All residual dependence is explained by innings-level composition "
-                "(shared latent); no sequential structure beyond it.")
+        text = (
+            "All residual dependence is explained by innings-level composition "
+            "(shared latent); no sequential structure beyond it."
+        )
     elif survives_part_demean:
         label = "sequential"
-        text = ("Genuine ball-adjacent sequential dependence survives even after "
-                "removing partnership means; momentum-like correlation is real.")
+        text = (
+            "Genuine ball-adjacent sequential dependence survives even after "
+            "removing partnership means; momentum-like correlation is real."
+        )
     else:
         label = "partnership-latent"
-        text = ("Dependence beyond innings composition exists but collapses once "
-                "partnership means are removed: it is a partnership-scale shared "
-                "latent (who is batting / how set they are), not ball-adjacent "
-                "momentum.")
+        text = (
+            "Dependence beyond innings composition exists but collapses once "
+            "partnership means are removed: it is a partnership-scale shared "
+            "latent (who is batting / how set they are), not ball-adjacent "
+            "momentum."
+        )
     return {
         "label": label,
         "text": text,
@@ -273,8 +286,10 @@ def verdict(obs: dict, null: dict, icc_inn: float, icc_part: float) -> dict:
 # report
 # ---------------------------------------------------------------------------
 def _table(obs: dict, null: dict, variant: str, scope: str, lags: list[int]) -> str:
-    rows = ["| lag | observed | null mean | null 2.5% | null 97.5% | above band |",
-            "|---|---|---|---|---|---|"]
+    rows = [
+        "| lag | observed | null mean | null 2.5% | null 97.5% | above band |",
+        "|---|---|---|---|---|---|",
+    ]
     for lag in lags:
         k = (variant, scope, lag)
         m, lo, hi = band(null[k])
@@ -299,97 +314,149 @@ def main() -> int:
     obs_w, null_w = observed_and_null(d["wkt"], d["inn"], d["part"])
     v = verdict(obs_r, null_r, icc[("runs", "innings")], icc[("runs", "partnership")])
 
-    L = ["# Dependence decomposition: serial correlation vs shared latents", "",
-         f"Train split, {len(train):,} balls, {N_PERM} within-innings permutations. "
-         f"Residual = value minus its (phase, w) state mean. The permutation null "
-         f"PRESERVES innings-level composition (shuffling within an innings keeps "
-         f"the innings' shared latent in every pair) while destroying ordering and "
-         f"partnership structure -- so `observed above the null band` means "
-         f"dependence BEYOND innings-level heterogeneity, and the null centre "
-         f"estimates the heterogeneity component itself.", ""]
+    L = [
+        "# Dependence decomposition: serial correlation vs shared latents",
+        "",
+        f"Train split, {len(train):,} balls, {N_PERM} within-innings permutations. "
+        f"Residual = value minus its (phase, w) state mean. The permutation null "
+        f"PRESERVES innings-level composition (shuffling within an innings keeps "
+        f"the innings' shared latent in every pair) while destroying ordering and "
+        f"partnership structure -- so `observed above the null band` means "
+        f"dependence BEYOND innings-level heterogeneity, and the null centre "
+        f"estimates the heterogeneity component itself.",
+        "",
+    ]
 
-    L += ["## Runs residuals -- within-innings lag profile", "",
-          "### state-demeaned (the M3 construction)", "",
-          _table(obs_r, null_r, "state", "innings", LAGS), "",
-          "### + innings-demeaned", "",
-          _table(obs_r, null_r, "state+innings", "innings", LAGS), "",
-          "### + partnership-demeaned, within-partnership pairs", "",
-          _table(obs_r, null_r, "state+partnership", "partnership", PART_LAGS), ""]
+    L += [
+        "## Runs residuals -- within-innings lag profile",
+        "",
+        "### state-demeaned (the M3 construction)",
+        "",
+        _table(obs_r, null_r, "state", "innings", LAGS),
+        "",
+        "### + innings-demeaned",
+        "",
+        _table(obs_r, null_r, "state+innings", "innings", LAGS),
+        "",
+        "### + partnership-demeaned, within-partnership pairs",
+        "",
+        _table(obs_r, null_r, "state+partnership", "partnership", PART_LAGS),
+        "",
+    ]
 
     k_headline = ("state", "partnership", 1)
     m_h, lo_h, hi_h = band(null_r[k_headline])
-    L += ["## Continuity with the M3 headline number", "",
-          f"Within-partnership lag-1 autocorrelation of state-demeaned runs "
-          f"residuals (the construction behind the +0.037 in "
-          f"leverage_validation.md, here on train only): "
-          f"**{obs_r[k_headline]:+.4f}**, permutation null "
-          f"[{lo_h:+.4f}, {hi_h:+.4f}] centred at {m_h:+.4f}.", ""]
+    L += [
+        "## Continuity with the M3 headline number",
+        "",
+        f"Within-partnership lag-1 autocorrelation of state-demeaned runs "
+        f"residuals (the construction behind the +0.037 in "
+        f"leverage_validation.md, here on train only): "
+        f"**{obs_r[k_headline]:+.4f}**, permutation null "
+        f"[{lo_h:+.4f}, {hi_h:+.4f}] centred at {m_h:+.4f}.",
+        "",
+    ]
 
-    L += ["## Wicket residuals -- within-innings lag profile", "",
-          "### state-demeaned", "",
-          _table(obs_w, null_w, "state", "innings", LAGS), "",
-          "### + innings-demeaned", "",
-          _table(obs_w, null_w, "state+innings", "innings", LAGS), ""]
+    L += [
+        "## Wicket residuals -- within-innings lag profile",
+        "",
+        "### state-demeaned",
+        "",
+        _table(obs_w, null_w, "state", "innings", LAGS),
+        "",
+        "### + innings-demeaned",
+        "",
+        _table(obs_w, null_w, "state+innings", "innings", LAGS),
+        "",
+    ]
 
-    L += ["## Variance decomposition (ICC)", "",
-          "| residual | innings-level ICC | partnership-level ICC |", "|---|---|---|",
-          f"| runs | {icc[('runs', 'innings')]:.4f} | {icc[('runs', 'partnership')]:.4f} |",
-          f"| wicket | {icc[('wkt', 'innings')]:.4f} | {icc[('wkt', 'partnership')]:.4f} |", "",
-          f"Cross-check: the state-variant null-band centre at lag 1 "
-          f"({v['null_centre_lag1']:+.4f}) should sit near the innings ICC "
-          f"({v['icc_inn']:+.4f}) -- both estimate the innings-composition "
-          f"component.", "",
-          "Caveat: the wicket *partnership* ICC is mechanically confounded and "
-          "should not be read as a latent -- every partnership ends in exactly one "
-          "wicket, so its per-partnership wicket rate is 1/length by construction "
-          "and the group-mean variance is a length artifact.", ""]
+    L += [
+        "## Variance decomposition (ICC)",
+        "",
+        "| residual | innings-level ICC | partnership-level ICC |",
+        "|---|---|---|",
+        f"| runs | {icc[('runs', 'innings')]:.4f} | {icc[('runs', 'partnership')]:.4f} |",
+        f"| wicket | {icc[('wkt', 'innings')]:.4f} | {icc[('wkt', 'partnership')]:.4f} |",
+        "",
+        f"Cross-check: the state-variant null-band centre at lag 1 "
+        f"({v['null_centre_lag1']:+.4f}) should sit near the innings ICC "
+        f"({v['icc_inn']:+.4f}) -- both estimate the innings-composition "
+        f"component.",
+        "",
+        "Caveat: the wicket *partnership* ICC is mechanically confounded and "
+        "should not be read as a latent -- every partnership ends in exactly one "
+        "wicket, so its per-partnership wicket rate is 1/length by construction "
+        "and the group-mean variance is a length artifact.",
+        "",
+    ]
 
-    L += ["## Interpretation matrix", "",
-          "| observation | verdict |", "|---|---|",
-          "| profile decays, survives innings demeaning | genuine serial correlation |",
-          "| flat profile, collapses under innings demeaning, innings ICC > 0 | match-level heterogeneity |",
-          "| collapses under partnership demeaning, partnership ICC >> innings ICC | partnership-scale latent |",
-          "| mixed | report the shares |", ""]
+    L += [
+        "## Interpretation matrix",
+        "",
+        "| observation | verdict |",
+        "|---|---|",
+        "| profile decays, survives innings demeaning | genuine serial correlation |",
+        "| flat profile, collapses under innings demeaning, innings ICC > 0 | match-level heterogeneity |",
+        "| collapses under partnership demeaning, partnership ICC >> innings ICC | partnership-scale latent |",
+        "| mixed | report the shares |",
+        "",
+    ]
 
     exc = ", ".join(f"lag {k}: {x:+.4f}" for k, x in v["excess"].items())
-    L += ["## Verdict (computed, runs residuals)", "",
-          f"- dependence beyond innings composition at lag 1: "
-          f"**{'yes' if v['beyond_innings'] else 'no'}**",
-          f"- survives innings demeaning: **{'yes' if v['survives_inn_demean'] else 'no'}**",
-          f"- survives partnership demeaning (within-partnership pairs): "
-          f"**{'yes' if v['survives_part_demean'] else 'no'}**",
-          f"- innings-composition share of the lag-1 signal: "
-          f"**{100 * v['het_share_lag1']:.0f}%**",
-          f"- excess over null by lag ({'decaying' if v['decays'] else 'flat-ish'}): {exc}", "",
-          f"**{v['label']}** -- {v['text']}", ""]
+    L += [
+        "## Verdict (computed, runs residuals)",
+        "",
+        f"- dependence beyond innings composition at lag 1: "
+        f"**{'yes' if v['beyond_innings'] else 'no'}**",
+        f"- survives innings demeaning: **{'yes' if v['survives_inn_demean'] else 'no'}**",
+        f"- survives partnership demeaning (within-partnership pairs): "
+        f"**{'yes' if v['survives_part_demean'] else 'no'}**",
+        f"- innings-composition share of the lag-1 signal: **{100 * v['het_share_lag1']:.0f}%**",
+        f"- excess over null by lag ({'decaying' if v['decays'] else 'flat-ish'}): {exc}",
+        "",
+        f"**{v['label']}** -- {v['text']}",
+        "",
+    ]
 
     # wickets get their own (asymmetric) verdict: read the short-lag cells
     wk1 = obs_w[("state", "innings", 1)]
     _, wlo1, whi1 = band(null_w[("state", "innings", 1)])
     wk_anti = wk1 < wlo1
-    L += ["## Verdict (wicket residuals)", "",
-          (f"Short-lag wicket dependence is **{'NEGATIVE' if wk_anti else 'not detected'}**: "
-           f"lag-1 observed {wk1:+.4f} vs null [{wlo1:+.4f}, {whi1:+.4f}]. "
-           + ("Wickets ANTI-cluster ball-adjacent -- immediately after state-mean "
-              "adjustment, a wicket makes another wicket in the next few balls LESS "
-              "likely than independence predicts (consolidation). The 'wicket "
-              "clusters' half of the original mechanism story is not supported; "
-              "the dependence that closes the calibration gap is run-scoring "
-              "persistence. Note positive run-rate persistence alone explains the "
-              "two-sided gap closure: bursts make hard chases more winnable, and "
-              "the mirror-image droughts make easy chases more losable."
-              if wk_anti else
-              "No short-range wicket clustering or anti-clustering is resolved; "
-              "the dependence signal lives in run scoring.")), ""]
+    L += [
+        "## Verdict (wicket residuals)",
+        "",
+        (
+            f"Short-lag wicket dependence is **{'NEGATIVE' if wk_anti else 'not detected'}**: "
+            f"lag-1 observed {wk1:+.4f} vs null [{wlo1:+.4f}, {whi1:+.4f}]. "
+            + (
+                "Wickets ANTI-cluster ball-adjacent -- immediately after state-mean "
+                "adjustment, a wicket makes another wicket in the next few balls LESS "
+                "likely than independence predicts (consolidation). The 'wicket "
+                "clusters' half of the original mechanism story is not supported; "
+                "the dependence that closes the calibration gap is run-scoring "
+                "persistence. Note positive run-rate persistence alone explains the "
+                "two-sided gap closure: bursts make hard chases more winnable, and "
+                "the mirror-image droughts make easy chases more losable."
+                if wk_anti
+                else "No short-range wicket clustering or anti-clustering is resolved; "
+                "the dependence signal lives in run scoring."
+            )
+        ),
+        "",
+    ]
 
     out = config.REPORTS / "dependence_decomposition.md"
     out.write_text("\n".join(L))
     print(f"verdict: {v['label']}")
-    print(f"  lag-1 state obs {obs_r[('state', 'innings', 1)]:+.4f} vs null centre "
-          f"{v['null_centre_lag1']:+.4f} (het share {100 * v['het_share_lag1']:.0f}%)")
+    print(
+        f"  lag-1 state obs {obs_r[('state', 'innings', 1)]:+.4f} vs null centre "
+        f"{v['null_centre_lag1']:+.4f} (het share {100 * v['het_share_lag1']:.0f}%)"
+    )
     print(f"  innings ICC {v['icc_inn']:+.4f}  partnership ICC {v['icc_part']:+.4f}")
-    print(f"  survives innings demeaning: {v['survives_inn_demean']}  "
-          f"partnership demeaning: {v['survives_part_demean']}")
+    print(
+        f"  survives innings demeaning: {v['survives_inn_demean']}  "
+        f"partnership demeaning: {v['survives_part_demean']}"
+    )
     print(f"Wrote {out}")
     return 0
 

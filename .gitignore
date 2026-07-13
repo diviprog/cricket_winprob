@@ -16,5 +16,8 @@ wheels/
 # OS / editor
 .DS_Store
 
+# Personal Claude Code instructions (private)
+CLAUDE.local.md
+
 # Regenerated report artifacts
 reports/*.png

@@ -23,7 +23,7 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 
 from . import config
-from .outcome_model import fit_base, fit_rrr, make_outcome_model, recency_weights
+from .outcome_model import fit_rrr, make_outcome_model, recency_weights
 from .validation import brier, ece, log_loss, reliability_curve
 from .wp_markov import solve_wp
 
@@ -31,8 +31,8 @@ from .wp_markov import solve_wp
 # origin CV. ESS_FLOOR is the variance guard (see tune_half_life): we do not chase
 # the CV argmin, which is boundary-pinned because the scoring trend is monotone.
 HALF_LIFE_GRID = [None, 8.0, 6.0, 4.0, 3.0, 2.0, 1.5, 1.0, 0.75, 0.5]
-N_CV_FOLDS = 3          # rolling one-step-ahead validation seasons (most recent)
-ESS_FLOOR = 0.15        # keep >=15% effective sample so per-cell estimates stay stable
+N_CV_FOLDS = 3  # rolling one-step-ahead validation seasons (most recent)
+ESS_FLOOR = 0.15  # keep >=15% effective sample so per-cell estimates stay stable
 
 
 def _mean_runs(frame: pd.DataFrame, weights: np.ndarray | None = None) -> float:
@@ -99,7 +99,15 @@ def tune_half_life(train: pd.DataFrame, r_max: int):
             p = wp.predict(val["b"].to_numpy(), val["w"].to_numpy(), val["r"].to_numpy())
             lls.append(log_loss(p, val["y"].to_numpy()))
             brs.append(brier(p, val["y"].to_numpy()))
-        rows.append((hl, float(np.mean(lls)), float(np.mean(brs)), float(np.mean(essf)), [round(x, 4) for x in lls]))
+        rows.append(
+            (
+                hl,
+                float(np.mean(lls)),
+                float(np.mean(brs)),
+                float(np.mean(essf)),
+                [round(x, 4) for x in lls],
+            )
+        )
 
     # candidates: keep improving vs the previous (larger) half-life, ESS above floor
     best_hl, best_ll = None, rows[0][1]
@@ -124,8 +132,8 @@ def main() -> int:
     cv_folds, tune_rows, best_hl = tune_half_life(train, r_max)
 
     # --- fit final models on FULL train ------------------------------------
-    wp_raw = _fit_rrr_wp(train, None, r_max)          # M2 RRR Markov (unweighted)
-    wp_era = _fit_rrr_wp(train, best_hl, r_max)        # era-adjusted
+    wp_raw = _fit_rrr_wp(train, None, r_max)  # M2 RRR Markov (unweighted)
+    wp_era = _fit_rrr_wp(train, best_hl, r_max)  # era-adjusted
     lr = LogisticRegression().fit(train[["rrr"]].to_numpy(), train["y"].to_numpy())
     base_rate = float(train["y"].mean())
 
@@ -135,8 +143,18 @@ def main() -> int:
     p_lr = lr.predict_proba(holdout[["rrr"]].to_numpy())[:, 1]
     p_const = np.full(len(holdout), base_rate)
     ref = {
-        "pure-RRR logistic": {"brier": brier(p_lr, y), "log_loss": log_loss(p_lr, y), "ece": ece(p_lr, y), "mean_pred": float(p_lr.mean())},
-        "base-rate const": {"brier": brier(p_const, y), "log_loss": log_loss(p_const, y), "ece": ece(p_const, y), "mean_pred": base_rate},
+        "pure-RRR logistic": {
+            "brier": brier(p_lr, y),
+            "log_loss": log_loss(p_lr, y),
+            "ece": ece(p_lr, y),
+            "mean_pred": float(p_lr.mean()),
+        },
+        "base-rate const": {
+            "brier": brier(p_const, y),
+            "log_loss": log_loss(p_const, y),
+            "ece": ece(p_const, y),
+            "mean_pred": base_rate,
+        },
     }
 
     # in-sample gap on train, to show the era term shrinks the structural piece too
@@ -180,7 +198,9 @@ def main() -> int:
     ]
     for hl, ll, br, ess, pf in tune_rows:
         mark = " **<- chosen**" if hl == best_hl else ""
-        L.append(f"| {'none (M2)' if hl is None else hl}{mark} | {ll:.4f} | {br:.4f} | {ess:.3f} | {pf} |")
+        L.append(
+            f"| {'none (M2)' if hl is None else hl}{mark} | {ll:.4f} | {br:.4f} | {ess:.3f} | {pf} |"
+        )
     L += [
         "",
         f"Chosen half-life: **{best_hl} seasons** (weight halves every {best_hl} season(s); "
@@ -193,8 +213,10 @@ def main() -> int:
         "|---|---|---|---|---|---|",
     ]
     actual = float(y.mean())
+
     def row(name, d):
-        return f"| {name} | {d['brier']:.4f} | {d['log_loss']:.4f} | {d['ece']:.4f} | {d['mean_pred']:.3f} | {d['mean_pred']-actual:+.4f} |"
+        return f"| {name} | {d['brier']:.4f} | {d['log_loss']:.4f} | {d['ece']:.4f} | {d['mean_pred']:.3f} | {d['mean_pred'] - actual:+.4f} |"
+
     L.append(row("RRR Markov (M2, unweighted)", s_raw))
     L.append(row(f"RRR Markov + recency (hl={best_hl})", s_era))
     L.append(row("pure-RRR logistic", ref["pure-RRR logistic"]))
@@ -209,7 +231,11 @@ def main() -> int:
     gap_close = (abs(gap_raw) - abs(gap_era)) / abs(gap_raw) if gap_raw else float("nan")
     brier_gap_to_lr_before = s_raw["brier"] - ref["pure-RRR logistic"]["brier"]
     brier_gap_to_lr_after = s_era["brier"] - ref["pure-RRR logistic"]["brier"]
-    lr_close = (brier_gap_to_lr_before - brier_gap_to_lr_after) / brier_gap_to_lr_before if brier_gap_to_lr_before else float("nan")
+    lr_close = (
+        (brier_gap_to_lr_before - brier_gap_to_lr_after) / brier_gap_to_lr_before
+        if brier_gap_to_lr_before
+        else float("nan")
+    )
 
     L += [
         "## Effect",
@@ -223,8 +249,8 @@ def main() -> int:
         f"- **Gap to the logistic.** Brier gap to the pure-RRR logistic {brier_gap_to_lr_before:+.4f} "
         f"-> {brier_gap_to_lr_after:+.4f} ({lr_close:.0%} of it closed by the era term alone), "
         f"and this WP is still a proper martingale (unlike the M2.5 recalibration, which was not).",
-        f"- **In-sample (structural) piece.** Train mean gap {s_raw_tr['mean_pred']-s_raw_tr['actual']:+.4f} "
-        f"-> {s_era_tr['mean_pred']-s_era_tr['actual']:+.4f}: recency weighting is a mild "
+        f"- **In-sample (structural) piece.** Train mean gap {s_raw_tr['mean_pred'] - s_raw_tr['actual']:+.4f} "
+        f"-> {s_era_tr['mean_pred'] - s_era_tr['actual']:+.4f}: recency weighting is a mild "
         f"reweighting of the same fit, so the in-sample memoryless component is little changed, "
         f"as expected -- the gain is on the era shift, not the tail-thinning.",
         "",
@@ -247,7 +273,11 @@ def main() -> int:
 
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.plot([0, 1], [0, 1], "k--", lw=1, label="perfect")
-    for name, p in [("RRR Markov (M2)", s_raw["p"]), (f"RRR Markov + recency", s_era["p"]), ("pure-RRR logistic", p_lr)]:
+    for name, p in [
+        ("RRR Markov (M2)", s_raw["p"]),
+        ("RRR Markov + recency", s_era["p"]),
+        ("pure-RRR logistic", p_lr),
+    ]:
         conf, acc, _ = reliability_curve(p, y)
         ax.plot(conf, acc, marker="o", ms=3, label=name)
     ax.set_xlabel("predicted WP")

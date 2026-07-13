@@ -32,18 +32,20 @@ BAND = "#c7c7c7"
 BAND_EDGE = "#8a8a8a"
 GRID = "#e3e3e3"
 
-plt.rcParams.update({
-    "font.family": "serif",
-    "font.size": 9,
-    "axes.titlesize": 9.5,
-    "axes.labelsize": 9,
-    "axes.edgecolor": "#555555",
-    "axes.linewidth": 0.8,
-    "xtick.color": "#555555",
-    "ytick.color": "#555555",
-    "text.color": INK,
-    "axes.labelcolor": INK,
-})
+plt.rcParams.update(
+    {
+        "font.family": "serif",
+        "font.size": 9,
+        "axes.titlesize": 9.5,
+        "axes.labelsize": 9,
+        "axes.edgecolor": "#555555",
+        "axes.linewidth": 0.8,
+        "xtick.color": "#555555",
+        "ytick.color": "#555555",
+        "text.color": INK,
+        "axes.labelcolor": INK,
+    }
+)
 
 
 def _rows(md: str, section: str, n_cols: int, drop: int = 2) -> list[list[str]]:
@@ -86,12 +88,9 @@ def make_f3() -> Path:
     nhi = [float(r[4]) for r in rows]
 
     fig, ax = plt.subplots(figsize=(5.5, 3.3))
-    ax.fill_between(lag, nlo, nhi, color=BAND, alpha=0.55, linewidth=0,
-                    zorder=1)
-    ax.plot(lag, nmean, color=BAND_EDGE, linewidth=1.1, linestyle="--",
-            zorder=2)
-    ax.plot(lag, obs, color=INK, linewidth=1.6, marker="o", markersize=4.5,
-            zorder=3)
+    ax.fill_between(lag, nlo, nhi, color=BAND, alpha=0.55, linewidth=0, zorder=1)
+    ax.plot(lag, nmean, color=BAND_EDGE, linewidth=1.1, linestyle="--", zorder=2)
+    ax.plot(lag, obs, color=INK, linewidth=1.6, marker="o", markersize=4.5, zorder=3)
     ax.axhline(0, color="#999999", linewidth=0.7, linestyle=":", zorder=0)
 
     ax.set_xscale("log")
@@ -102,16 +101,22 @@ def make_f3() -> Path:
     ax.set_ylabel("autocorrelation of run residuals")
 
     # direct labels instead of a legend box
-    ax.annotate("observed", xy=(lag[1], obs[1]), xytext=(2.3, 0.040),
-                fontsize=9, color=INK)
-    ax.annotate("permutation null: mean, 95% band\n"
-                "(= innings-composition component)",
-                xy=(20, nhi[5]), xytext=(9.5, 0.0305), fontsize=8,
-                color="#555555",
-                arrowprops=dict(arrowstyle="-", color="#999999", linewidth=0.7))
-    ax.annotate("sequential excess,\n~3–5-ball range",
-                xy=(2, 0.030), xytext=(1.5, 0.0185), fontsize=8,
-                color="#555555")
+    ax.annotate("observed", xy=(lag[1], obs[1]), xytext=(2.3, 0.040), fontsize=9, color=INK)
+    ax.annotate(
+        "permutation null: mean, 95% band\n(= innings-composition component)",
+        xy=(20, nhi[5]),
+        xytext=(9.5, 0.0305),
+        fontsize=8,
+        color="#555555",
+        arrowprops=dict(arrowstyle="-", color="#999999", linewidth=0.7),
+    )
+    ax.annotate(
+        "sequential excess,\n~3–5-ball range",
+        xy=(2, 0.030),
+        xytext=(1.5, 0.0185),
+        fontsize=8,
+        color="#555555",
+    )
 
     _style(ax)
     fig.tight_layout()
@@ -148,26 +153,39 @@ def make_f4() -> Path:
 
     fig, ax = plt.subplots(figsize=(5.5, 3.3))
     ax.fill_between(ks, lo, hi, color=BAND, alpha=0.55, linewidth=0, zorder=1)
-    ax.plot(ks, mean, color=INK, linewidth=1.6, marker="o", markersize=4.5,
-            zorder=3)
-    ax.axhline(dp_ref, color="#777777", linewidth=1.0, linestyle="--",
-               zorder=2)
-    ax.annotate("exact DP (independent balls)", xy=(25, dp_ref),
-                xytext=(22, dp_ref + 0.0008), fontsize=8, color="#555555")
+    ax.plot(ks, mean, color=INK, linewidth=1.6, marker="o", markersize=4.5, zorder=3)
+    ax.axhline(dp_ref, color="#777777", linewidth=1.0, linestyle="--", zorder=2)
+    ax.annotate(
+        "exact DP (independent balls)",
+        xy=(25, dp_ref),
+        xytext=(22, dp_ref + 0.0008),
+        fontsize=8,
+        color="#555555",
+    )
 
     # highlight the replicated minimum
     i_min = mean.index(min(mean))
-    ax.plot([ks[i_min]], [mean[i_min]], marker="o", markersize=8,
-            markerfacecolor="white", markeredgecolor=INK,
-            markeredgewidth=1.4, zorder=4)
-    ax.annotate(f"K={ks[i_min]}: −26% vs independence\n(minimum in 6/6 seeds)",
-                xy=(ks[i_min], mean[i_min]),
-                xytext=(ks[i_min] * 1.35, mean[i_min] - 0.0022), fontsize=8,
-                color="#555555",
-                arrowprops=dict(arrowstyle="-", color="#999999",
-                                linewidth=0.7))
-    ax.annotate("min–max over 6 seeds", xy=(60, hi[5]),
-                xytext=(34, 0.0545), fontsize=8, color="#555555")
+    ax.plot(
+        [ks[i_min]],
+        [mean[i_min]],
+        marker="o",
+        markersize=8,
+        markerfacecolor="white",
+        markeredgecolor=INK,
+        markeredgewidth=1.4,
+        zorder=4,
+    )
+    ax.annotate(
+        f"K={ks[i_min]}: −26% vs independence\n(minimum in 6/6 seeds)",
+        xy=(ks[i_min], mean[i_min]),
+        xytext=(ks[i_min] * 1.35, mean[i_min] - 0.0022),
+        fontsize=8,
+        color="#555555",
+        arrowprops=dict(arrowstyle="-", color="#999999", linewidth=0.7),
+    )
+    ax.annotate(
+        "min–max over 6 seeds", xy=(60, hi[5]), xytext=(34, 0.0545), fontsize=8, color="#555555"
+    )
 
     ax.set_xscale("log")
     ax.set_xticks(ks)

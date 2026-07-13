@@ -80,7 +80,9 @@ def build_predictions(df: pd.DataFrame):
     r_max = int(df["r"].max()) + 1
 
     preds: dict[str, np.ndarray] = {}
-    insample: dict[str, dict] = {}  # Markov calibration on TRAIN, to separate model-class error from shift
+    insample: dict[
+        str, dict
+    ] = {}  # Markov calibration on TRAIN, to separate model-class error from shift
 
     # --- Markov models (solve WP once, score on both splits) -----------------
     for name, kind, params in [
@@ -152,7 +154,9 @@ def make_report(preds: dict, holdout: pd.DataFrame, insample: dict, era: dict) -
         lines.append("")
         lines.append("By phase: " + ", ".join(f"{k}={v:.4f}" for k, v in by_phase.items()))
         lines.append("")
-        lines.append("By wickets in hand: " + ", ".join(f"{k}={v:.4f}" for k, v in sorted(by_w.items())))
+        lines.append(
+            "By wickets in hand: " + ", ".join(f"{k}={v:.4f}" for k, v in sorted(by_w.items()))
+        )
         lines.append("")
 
     # --- honest finding ------------------------------------------------------
@@ -228,8 +232,12 @@ def main() -> int:
             better = rrr[metric] < metrics[ref][metric]
             ok &= better
             verdict = "PASS" if better else "FAIL"
-            print(f"  {verdict}: RRR Markov {metric} {rrr[metric]:.4f} < {ref} {metrics[ref][metric]:.4f}")
-    print(f"\n  M2 GATE: {'PASS' if ok else 'FAIL (beats base-rate; trails direct logistic -- see Finding)'}")
+            print(
+                f"  {verdict}: RRR Markov {metric} {rrr[metric]:.4f} < {ref} {metrics[ref][metric]:.4f}"
+            )
+    print(
+        f"\n  M2 GATE: {'PASS' if ok else 'FAIL (beats base-rate; trails direct logistic -- see Finding)'}"
+    )
     print(f"\nWrote {config.REPORTS / 'validation_report.md'} and reliability.png")
     return 0 if ok else 1
 

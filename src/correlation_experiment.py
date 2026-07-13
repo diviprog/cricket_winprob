@@ -57,16 +57,16 @@ from . import config
 from .outcome_model import RRR_BIN_EDGES, make_outcome_model, fit_rrr
 from .wp_markov import solve_wp
 
-OUT = config.OUTCOMES              # ["0".."6","W"]
+OUT = config.OUTCOMES  # ["0".."6","W"]
 RUNS = np.array([0, 1, 2, 3, 4, 5, 6, 0])  # run value per outcome index; W(idx7)=0 runs
 W_IDX = 7
 FINE_RRR_EDGES = [0, 6, 8, 10, 12, 14, 16, 18, 22, 40]
 BLOCK_LENGTHS = [1, 3, 8, 20, 40, 80, 120]  # to saturation (120 = whole-innings replay)
-SCATTER_K = 20             # donor-innings length for the scattered (mechanism) arm
+SCATTER_K = 20  # donor-innings length for the scattered (mechanism) arm
 N_SIMS = 400
-PER_SLICE = 220            # evaluated real states sampled per RRR slice
+PER_SLICE = 220  # evaluated real states sampled per RRR slice
 SEED = 0
-SEEDS = range(6)           # replication seeds; each drives sample AND MC draws
+SEEDS = range(6)  # replication seeds; each drives sample AND MC draws
 MIN_CELL = 150
 
 
@@ -86,8 +86,9 @@ def _cell_id(b: np.ndarray, w: np.ndarray, r: np.ndarray) -> np.ndarray:
 
 
 def _rrr_slice(rrr: np.ndarray) -> np.ndarray:
-    return np.clip(np.searchsorted(FINE_RRR_EDGES, rrr, side="right") - 1,
-                  0, len(FINE_RRR_EDGES) - 2)
+    return np.clip(
+        np.searchsorted(FINE_RRR_EDGES, rrr, side="right") - 1, 0, len(FINE_RRR_EDGES) - 2
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -106,8 +107,14 @@ def full_marginal_tv(train: pd.DataFrame, dist) -> pd.DataFrame:
         mp = model[m].mean(0)
         ep = emp1h[m].mean(0)
         tv = 0.5 * np.abs(mp - ep).sum()
-        rows.append({"rrr_slice": _slice_label(sl), "n": int(m.sum()),
-                     "tv": tv, "max_abs_dev": float(np.abs(mp - ep).max())})
+        rows.append(
+            {
+                "rrr_slice": _slice_label(sl),
+                "n": int(m.sum()),
+                "tv": tv,
+                "max_abs_dev": float(np.abs(mp - ep).max()),
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -132,8 +139,8 @@ class BlockSampler:
         pos, k = 0, 0
         for _, grp in t.groupby("match_id", sort=False):
             n = len(grp)
-            stop[pos:pos + n] = pos + n
-            inn_of[pos:pos + n] = k
+            stop[pos : pos + n] = pos + n
+            inn_of[pos : pos + n] = k
             pos += n
             k += 1
         self.stop = stop
@@ -144,8 +151,7 @@ class BlockSampler:
         cells_sorted = self.cell[order]
         uniq, first = np.unique(cells_sorted, return_index=True)
         bounds = np.append(first, len(order))
-        self.cell_pos = {int(c): order[bounds[i]:bounds[i + 1]]
-                         for i, c in enumerate(uniq)}
+        self.cell_pos = {int(c): order[bounds[i] : bounds[i + 1]] for i, c in enumerate(uniq)}
         # (innings, cell) -> positions index, for the scattered mode. Cell ids are
         # < 1000 ((rb*11+w)*3+ph <= 197), so combo = inn*1000 + cell is unique.
         combo = inn_of * 1000 + self.cell
@@ -154,8 +160,10 @@ class BlockSampler:
         cs = combo[ic_order]
         ic_uniq, ic_first = np.unique(cs, return_index=True)
         ic_bounds = np.append(ic_first, len(ic_order))
-        self.ic_ptr = {int(c): (int(ic_first[i]), int(ic_bounds[i + 1] - ic_first[i]))
-                       for i, c in enumerate(ic_uniq)}
+        self.ic_ptr = {
+            int(c): (int(ic_first[i]), int(ic_bounds[i + 1] - ic_first[i]))
+            for i, c in enumerate(ic_uniq)
+        }
 
     def draw(self, cell_ids: np.ndarray, rng: np.random.Generator) -> np.ndarray:
         """A random real start position for each requested cell (grouped)."""
@@ -163,7 +171,7 @@ class BlockSampler:
         for c in np.unique(cell_ids):
             mask = cell_ids == c
             pool = self.cell_pos.get(int(c))
-            if pool is None:                       # unseen cell: nearest by |cell-c|
+            if pool is None:  # unseen cell: nearest by |cell-c|
                 keys = np.fromiter(self.cell_pos.keys(), dtype=np.int64)
                 pool = self.cell_pos[int(keys[np.argmin(np.abs(keys - c))])]
             out[mask] = rng.choice(pool, size=int(mask.sum()))
@@ -272,14 +280,20 @@ def _sim_state(b0, w0, r0, mode, K, N, sampler, dist, cellprob, rng, acc=None, f
     # any still "alive" after 120 balls are out of balls -> resolve as terminal
     rem = np.isnan(done)
     if rem.any():
-        done[rem] = np.nan_to_num(_terminal(np.zeros(rem.sum(), dtype=np.int64),
-                                            w[rem], r[rem]))
+        done[rem] = np.nan_to_num(_terminal(np.zeros(rem.sum(), dtype=np.int64), w[rem], r[rem]))
     return float(done.mean())
 
 
 def run_block_experiment(
-    train: pd.DataFrame, dist, wp, seed: int = SEED, sampler=None, cellprob=None,
-    block_lengths=None, per_slice: int = PER_SLICE, n_sims: int = N_SIMS,
+    train: pd.DataFrame,
+    dist,
+    wp,
+    seed: int = SEED,
+    sampler=None,
+    cellprob=None,
+    block_lengths=None,
+    per_slice: int = PER_SLICE,
+    n_sims: int = N_SIMS,
     scattered_k: int | None = SCATTER_K,
 ) -> tuple[pd.DataFrame, dict, float]:
     """One full replicate. `seed` drives BOTH the stratified state sample and the
@@ -297,12 +311,12 @@ def run_block_experiment(
     d = train.copy()
     d["_sl"] = _rrr_slice((6.0 * d["r"] / d["b"]).to_numpy())
     d["_mk"] = wp.predict(d["b"].to_numpy(), d["w"].to_numpy(), d["r"].to_numpy())
-    full = d.groupby("_sl").agg(n_full=("y", "size"), emp=("y", "mean"),
-                                markov=("_mk", "mean"))
+    full = d.groupby("_sl").agg(n_full=("y", "size"), emp=("y", "mean"), markov=("_mk", "mean"))
 
     # stratified subsample for the (expensive) simulated modes
-    picks = pd.concat([g.sample(min(per_slice, len(g)), random_state=seed)
-                       for _, g in d.groupby("_sl")])
+    picks = pd.concat(
+        [g.sample(min(per_slice, len(g)), random_state=seed) for _, g in d.groupby("_sl")]
+    )
     states = list(zip(picks["b"].astype(int), picks["w"].astype(int), picks["r"].astype(int)))
     sl = picks["_sl"].to_numpy()
 
@@ -313,15 +327,29 @@ def run_block_experiment(
     accs = {m: np.zeros(len(OUT), dtype=np.int64) for m in modes}
     fb = np.zeros(2, dtype=np.int64)
     for i, (b, w, r) in enumerate(states):
-        cols["model_iid"][i] = _sim_state(b, w, r, "model_iid", 0, n_sims, sampler,
-                                          dist, cellprob, rng, accs["model_iid"])
+        cols["model_iid"][i] = _sim_state(
+            b, w, r, "model_iid", 0, n_sims, sampler, dist, cellprob, rng, accs["model_iid"]
+        )
         for K in block_lengths:
-            cols[f"block_K{K}"][i] = _sim_state(b, w, r, "block", K, n_sims, sampler,
-                                                dist, cellprob, rng, accs[f"block_K{K}"])
+            cols[f"block_K{K}"][i] = _sim_state(
+                b, w, r, "block", K, n_sims, sampler, dist, cellprob, rng, accs[f"block_K{K}"]
+            )
         if scattered_k:
             name = f"scattered_K{scattered_k}"
-            cols[name][i] = _sim_state(b, w, r, "scattered", scattered_k, n_sims,
-                                       sampler, dist, cellprob, rng, accs[name], fb)
+            cols[name][i] = _sim_state(
+                b,
+                w,
+                r,
+                "scattered",
+                scattered_k,
+                n_sims,
+                sampler,
+                dist,
+                cellprob,
+                rng,
+                accs[name],
+                fb,
+            )
     # realized per-ball outcome distribution each mode actually experienced
     realized = {m: a / a.sum() for m, a in accs.items()}
     fb_rate = float(fb[0] / fb[1]) if fb[1] else float("nan")
@@ -386,7 +414,8 @@ def main() -> int:
     block0 = None
     for s in SEEDS:
         block, realized, fb_rate = run_block_experiment(
-            train, dist, wp, seed=s, sampler=sampler, cellprob=cellprob)
+            train, dist, wp, seed=s, sampler=sampler, cellprob=cellprob
+        )
         if block0 is None:
             block0 = block
         for m, v in _mads(block, modes).items():
@@ -394,8 +423,7 @@ def main() -> int:
         fb_rates.append(fb_rate)
         base = realized["block_K1"]
         for m in realized:
-            fid_seed.setdefault(m, []).append(
-                float(0.5 * np.abs(realized[m] - base).sum()))
+            fid_seed.setdefault(m, []).append(float(0.5 * np.abs(realized[m] - base).sum()))
 
     mean_mad = {m: float(np.mean(per_seed[m])) for m in modes}
     lo_mad = {m: float(np.min(per_seed[m])) for m in modes}
@@ -414,52 +442,78 @@ def main() -> int:
     gate_sep = mean_mad[f"block_K{kstar}"] < min(per_seed["block_K1"])
     saturation_resolved = gate_order and gate_sep
     # scattered arm: share of the consecutive-block closure it reproduces
-    scat_share = ((mean_mad["block_K1"] - mean_mad[scat])
-                  / max(mean_mad["block_K1"] - mean_mad[f"block_K{kstar}"], 1e-12))
+    scat_share = (mean_mad["block_K1"] - mean_mad[scat]) / max(
+        mean_mad["block_K1"] - mean_mad[f"block_K{kstar}"], 1e-12
+    )
 
-    L = ["# Does honouring ball-to-ball dependence close the calibration gap?", "",
-         f"Train split, {len(train):,} balls. Constructive test of the "
-         f"tail_diagnostics conclusion. Uses the PLAIN (non-era) RRR Markov model so "
-         f"every mode shares the same flat empirical marginals as the block "
-         f"resampler -- era adjustment is an orthogonal level correction that would "
-         f"otherwise confound the marginal match. {N_SIMS} sims/state, "
-         f"{PER_SLICE}/slice, replicated over {n_seeds} seeds (each seed redraws "
-         f"both the evaluated states and the MC paths).", ""]
+    L = [
+        "# Does honouring ball-to-ball dependence close the calibration gap?",
+        "",
+        f"Train split, {len(train):,} balls. Constructive test of the "
+        f"tail_diagnostics conclusion. Uses the PLAIN (non-era) RRR Markov model so "
+        f"every mode shares the same flat empirical marginals as the block "
+        f"resampler -- era adjustment is an orthogonal level correction that would "
+        f"otherwise confound the marginal match. {N_SIMS} sims/state, "
+        f"{PER_SLICE}/slice, replicated over {n_seeds} seeds (each seed redraws "
+        f"both the evaluated states and the MC paths).",
+        "",
+    ]
 
-    L += ["## Part A -- the full one-ball marginal matches empirical", "",
-          "Total variation distance between the model's per-ball distribution over "
-          "{0..6,W} and empirical, by RRR slice. Completes the elimination "
-          "(tail_diagnostics only checked boundary + wicket).", "",
-          _fmt(tv, ["tv", "max_abs_dev"]), "",
-          f"Max TV across slices = **{max_tv:.4f}** (0 = identical distributions). The "
-          f"full marginal is well estimated everywhere, so a WP gap cannot be a "
-          f"marginal error.", ""]
+    L += [
+        "## Part A -- the full one-ball marginal matches empirical",
+        "",
+        "Total variation distance between the model's per-ball distribution over "
+        "{0..6,W} and empirical, by RRR slice. Completes the elimination "
+        "(tail_diagnostics only checked boundary + wicket).",
+        "",
+        _fmt(tv, ["tv", "max_abs_dev"]),
+        "",
+        f"Max TV across slices = **{max_tv:.4f}** (0 = identical distributions). The "
+        f"full marginal is well estimated everywhere, so a WP gap cannot be a "
+        f"marginal error.",
+        "",
+    ]
 
     detail_modes = ["model_iid"] + [f"block_K{K}" for K in BLOCK_LENGTHS] + [scat]
-    L += ["## Part B -- gap vs dependence (block length K), seed-0 detail", "",
-          "Mean WP by mode vs empirical win rate, by RRR slice. `model_iid` draws "
-          "each ball independently from the fitted model (independence reference, "
-          "should track `markov`). `block_Kk` resamples real k-ball consecutive runs "
-          "matched to the current cell -- same marginals, real dependence. "
-          f"`{scat}` was designed as a heterogeneity-only control (cell-matched "
-          "draws from random positions of one donor innings) but turned out "
-          "DEGENERATE -- see the reading below; do not interpret it as a "
-          "mechanism probe.", "",
-          _fmt(block0[["rrr_slice", "n", "emp", "markov"] + detail_modes],
-               ["emp", "markov"] + detail_modes), ""]
+    L += [
+        "## Part B -- gap vs dependence (block length K), seed-0 detail",
+        "",
+        "Mean WP by mode vs empirical win rate, by RRR slice. `model_iid` draws "
+        "each ball independently from the fitted model (independence reference, "
+        "should track `markov`). `block_Kk` resamples real k-ball consecutive runs "
+        "matched to the current cell -- same marginals, real dependence. "
+        f"`{scat}` was designed as a heterogeneity-only control (cell-matched "
+        "draws from random positions of one donor innings) but turned out "
+        "DEGENERATE -- see the reading below; do not interpret it as a "
+        "mechanism probe.",
+        "",
+        _fmt(
+            block0[["rrr_slice", "n", "emp", "markov"] + detail_modes],
+            ["emp", "markov"] + detail_modes,
+        ),
+        "",
+    ]
 
-    L += ["## Replicated mean |gap| by mode (6 seeds; lower = better calibrated)", "",
-          "`marginal_TV_vs_K1` = max across seeds of the total variation between the "
-          "mode's realized per-ball outcome distribution and the independent K=1 "
-          "mode's -- near 0 means the mode adds dependence WITHOUT changing the "
-          "marginals, so gap movement is attributable to dependence alone.", "",
-          "| mode | mean |gap| | min..max over seeds | marginal_TV_vs_K1 |",
-          "|---|---|---|---|"]
+    L += [
+        "## Replicated mean |gap| by mode (6 seeds; lower = better calibrated)",
+        "",
+        "`marginal_TV_vs_K1` = max across seeds of the total variation between the "
+        "mode's realized per-ball outcome distribution and the independent K=1 "
+        "mode's -- near 0 means the mode adds dependence WITHOUT changing the "
+        "marginals, so gap movement is attributable to dependence alone.",
+        "",
+        "| mode | mean |gap| | min..max over seeds | marginal_TV_vs_K1 |",
+        "|---|---|---|---|",
+    ]
     for m in modes:
         fid = f"{max_fid[m]:.4f}" if m in max_fid else "--"
         L.append(f"| {m} | {mean_mad[m]:.4f} | {lo_mad[m]:.4f}..{hi_mad[m]:.4f} | {fid} |")
-    L += ["", f"Scattered-arm fallback rate (donor innings lacked the needed cell, "
-          f"global pool substituted): **{100 * fb_rate:.1f}%** of draws.", ""]
+    L += [
+        "",
+        f"Scattered-arm fallback rate (donor innings lacked the needed cell, "
+        f"global pool substituted): **{100 * fb_rate:.1f}%** of draws.",
+        "",
+    ]
 
     # --- conclusions, gated on the replicate spread --------------------------
     sat_txt = (
@@ -470,8 +524,8 @@ def main() -> int:
         f"dependence_decomposition.md: a block's extra cumulative variance grows "
         f"with K only until K is several times the correlation range, so a ~5-ball "
         f"range saturates near K~20."
-        if saturation_resolved else
-        f"The location of the minimum is NOT resolved beyond 'somewhere in the "
+        if saturation_resolved
+        else f"The location of the minimum is NOT resolved beyond 'somewhere in the "
         f"8-40 range': the K=20 < K=40 ordering holds in only {n_order}/{n_seeds} "
         f"seeds. The reduction from K=1 itself is robust; the fine shape of the "
         f"curve is within replicate noise."
@@ -481,13 +535,15 @@ def main() -> int:
         scat_txt = (
             f"It reproduces only **{100 * scat_share:.0f}%** of the consecutive-block "
             f"closure, corroborating the decomposition: the gap is closed by LOCAL "
-            f"sequential structure, not by innings-level heterogeneity.")
+            f"sequential structure, not by innings-level heterogeneity."
+        )
     elif scat_share <= 0.8:
         scat_txt = (
             f"It reproduces **{100 * scat_share:.0f}%** of the consecutive-block "
             f"closure -- a substantial innings-latent contribution, in tension with "
             f"the decomposition's 18% heterogeneity share; treat the mechanism split "
-            f"as unresolved between the two probes.")
+            f"as unresolved between the two probes."
+        )
     else:
         scat_txt = (
             f"It closed **{100 * scat_share:.0f}%** of the consecutive-block closure "
@@ -502,32 +558,38 @@ def main() -> int:
             f"reported as a negative methodological result; the mechanism question "
             f"is settled by dependence_decomposition.md (sequential, ~18% "
             f"heterogeneity), whose permutation-null design does not have this "
-            f"failure mode.")
-    L += ["## Reading, with the cross-seed spread", "",
-          f"Independence references agree at every seed: markov "
-          f"{mean_mad['markov']:.4f} ~ model_iid {mean_mad['model_iid']:.4f} ~ "
-          f"block_K1 {mean_mad['block_K1']:.4f} (validates the simulator and the "
-          f"flat-marginal match). Injecting real dependence shrinks the mean |gap| "
-          f"to **{mean_mad[f'block_K{kstar}']:.4f} at K={kstar}** -- a "
-          f"**{closed:.0f}% reduction** versus independence, with marginal fidelity "
-          f"<= TV {fid_blocks:.4f} across all block modes and seeds. The gap "
-          f"closes **constructively**.", "",
-          "Observations:",
-          "- **It closes in both directions**, as over-dispersion predicts: "
-          "dependence adds outcome variance, pulling WP toward 0.5 -- UP in hard "
-          "chases (RRR>=8, where the model was too low) and DOWN in easy ones "
-          "(RRR 0-6, where it was too high). Per dependence_decomposition.md the "
-          "dependence is run-scoring persistence (wickets ANTI-cluster), whose "
-          "burst/drought symmetry is exactly a two-sided variance effect.",
-          f"- **Saturation.** {sat_txt}",
-          f"- **The scattered arm.** {scat_txt}",
-          f"- **{closed:.0f}% is a lower bound, and the block bootstrap cannot "
-          f"measure more.** Even whole-innings replays (K={BLOCK_LENGTHS[-1]}) "
-          f"splice segments that diverge from the sim's evolving state and break "
-          f"dependence at block starts, so they extract no further clean signal. "
-          f"Pinning down the full contribution needs a generative dependent model "
-          f"(e.g. Markov-switching outcomes) -- the natural next step, and the one "
-          f"that would forfeit the exact martingale.", ""]
+            f"failure mode."
+        )
+    L += [
+        "## Reading, with the cross-seed spread",
+        "",
+        f"Independence references agree at every seed: markov "
+        f"{mean_mad['markov']:.4f} ~ model_iid {mean_mad['model_iid']:.4f} ~ "
+        f"block_K1 {mean_mad['block_K1']:.4f} (validates the simulator and the "
+        f"flat-marginal match). Injecting real dependence shrinks the mean |gap| "
+        f"to **{mean_mad[f'block_K{kstar}']:.4f} at K={kstar}** -- a "
+        f"**{closed:.0f}% reduction** versus independence, with marginal fidelity "
+        f"<= TV {fid_blocks:.4f} across all block modes and seeds. The gap "
+        f"closes **constructively**.",
+        "",
+        "Observations:",
+        "- **It closes in both directions**, as over-dispersion predicts: "
+        "dependence adds outcome variance, pulling WP toward 0.5 -- UP in hard "
+        "chases (RRR>=8, where the model was too low) and DOWN in easy ones "
+        "(RRR 0-6, where it was too high). Per dependence_decomposition.md the "
+        "dependence is run-scoring persistence (wickets ANTI-cluster), whose "
+        "burst/drought symmetry is exactly a two-sided variance effect.",
+        f"- **Saturation.** {sat_txt}",
+        f"- **The scattered arm.** {scat_txt}",
+        f"- **{closed:.0f}% is a lower bound, and the block bootstrap cannot "
+        f"measure more.** Even whole-innings replays (K={BLOCK_LENGTHS[-1]}) "
+        f"splice segments that diverge from the sim's evolving state and break "
+        f"dependence at block starts, so they extract no further clean signal. "
+        f"Pinning down the full contribution needs a generative dependent model "
+        f"(e.g. Markov-switching outcomes) -- the natural next step, and the one "
+        f"that would forfeit the exact martingale.",
+        "",
+    ]
 
     out = config.REPORTS / "correlation_experiment.md"
     out.write_text("\n".join(L))

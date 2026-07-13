@@ -80,12 +80,28 @@ N_BOOT = 1000
 MARKOV_FEATS = ["b", "w", "r"]
 STRIKER_FEATS = MARKOV_FEATS + ["striker_balls"]
 FULL_FEATS = MARKOV_FEATS + [
-    "striker_balls", "rrr", "crr", "target", "over", "w_frac",
-    "phase_powerplay", "phase_middle", "phase_death",
+    "striker_balls",
+    "rrr",
+    "crr",
+    "target",
+    "over",
+    "w_frac",
+    "phase_powerplay",
+    "phase_middle",
+    "phase_death",
 ]
 # spec 06's "logistic, first pass" list, verbatim.
-LOGIT_FEATS = ["b", "w", "r", "rrr", "crr", "w_frac",
-               "phase_powerplay", "phase_middle", "phase_death"]
+LOGIT_FEATS = [
+    "b",
+    "w",
+    "r",
+    "rrr",
+    "crr",
+    "w_frac",
+    "phase_powerplay",
+    "phase_middle",
+    "phase_death",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -122,8 +138,11 @@ def per_ball_log_loss(p: np.ndarray, y: np.ndarray) -> np.ndarray:
 
 
 def cluster_bootstrap_delta(
-    ll_a: np.ndarray, ll_b: np.ndarray, match_ids: np.ndarray,
-    n_boot: int = N_BOOT, seed: int = SEED,
+    ll_a: np.ndarray,
+    ll_b: np.ndarray,
+    match_ids: np.ndarray,
+    n_boot: int = N_BOOT,
+    seed: int = SEED,
 ) -> tuple[float, float, float]:
     """Paired match-clustered bootstrap on mean(ll_b) - mean(ll_a).
 
@@ -168,13 +187,22 @@ def _fit_xgb(train, val, holdout, feats: list[str]) -> tuple[np.ndarray, dict]:
     from xgboost import XGBClassifier
 
     clf = XGBClassifier(
-        n_estimators=2000, learning_rate=0.05, max_depth=5,
-        subsample=0.8, colsample_bytree=0.8, min_child_weight=20,
-        reg_lambda=1.0, tree_method="hist", eval_metric="logloss",
-        early_stopping_rounds=50, random_state=SEED, n_jobs=4,
+        n_estimators=2000,
+        learning_rate=0.05,
+        max_depth=5,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        min_child_weight=20,
+        reg_lambda=1.0,
+        tree_method="hist",
+        eval_metric="logloss",
+        early_stopping_rounds=50,
+        random_state=SEED,
+        n_jobs=4,
     )
     clf.fit(
-        train[feats].to_numpy(), train["y"].to_numpy(),
+        train[feats].to_numpy(),
+        train["y"].to_numpy(),
         eval_set=[(val[feats].to_numpy(), val["y"].to_numpy())],
         verbose=False,
     )
@@ -263,17 +291,25 @@ def _fmt_ci(point: float, lo: float, hi: float) -> str:
 def make_report(preds: dict, holdout: pd.DataFrame, meta: dict) -> tuple[str, dict]:
     y = holdout["y"].to_numpy()
     mids = holdout["match_id"].to_numpy()
-    metrics = {n: {"brier": brier(p, y), "log_loss": log_loss(p, y), "ece": ece(p, y)}
-               for n, p in preds.items()}
+    metrics = {
+        n: {"brier": brier(p, y), "log_loss": log_loss(p, y), "ece": ece(p, y)}
+        for n, p in preds.items()
+    }
     ll = {n: per_ball_log_loss(p, y) for n, p in preds.items()}
 
     L = ["# M4 -- Fitted baselines vs the structured Markov WP (spec 06)", ""]
-    L += [f"Held-out seasons: {sorted(holdout['season'].unique())} | "
-          f"{len(holdout):,} balls across {holdout['match_id'].nunique():,} matches | "
-          f"realized win rate {y.mean():.3f}", ""]
-    L += [f"XGBoost early-stopping validation = training season `{meta['val_season']}` "
-          f"held out whole ({meta['n_val']:,} balls); models fit on {meta['n_train']:,}. "
-          f"Markov models and the logistic use the full train split, as in M2/M3.", ""]
+    L += [
+        f"Held-out seasons: {sorted(holdout['season'].unique())} | "
+        f"{len(holdout):,} balls across {holdout['match_id'].nunique():,} matches | "
+        f"realized win rate {y.mean():.3f}",
+        "",
+    ]
+    L += [
+        f"XGBoost early-stopping validation = training season `{meta['val_season']}` "
+        f"held out whole ({meta['n_val']:,} balls); models fit on {meta['n_train']:,}. "
+        f"Markov models and the logistic use the full train split, as in M2/M3.",
+        "",
+    ]
 
     L += ["## M4 gate table (held-out; lower is better)", ""]
     L += ["| model | Brier | log loss | ECE |", "|---|---|---|---|"]
@@ -283,23 +319,42 @@ def make_report(preds: dict, holdout: pd.DataFrame, meta: dict) -> tuple[str, di
     L.append("")
 
     # --- the three questions, each with a match-clustered CI -----------------
-    L += ["## Paired match-clustered bootstrap on log loss", "",
-          f"Delta = mean log loss(B) - mean log loss(A); negative means **B is better**. "
-          f"{N_BOOT} resamples over whole matches (balls within a match share a label, "
-          f"so per-ball CIs would be ~sqrt(120) too narrow). 'sig' = 95% CI excludes 0.", ""]
+    L += [
+        "## Paired match-clustered bootstrap on log loss",
+        "",
+        f"Delta = mean log loss(B) - mean log loss(A); negative means **B is better**. "
+        f"{N_BOOT} resamples over whole matches (balls within a match share a label, "
+        f"so per-ball CIs would be ~sqrt(120) too narrow). 'sig' = 95% CI excludes 0.",
+        "",
+    ]
     L += ["| question | A | B | delta | 95% CI | sig |", "|---|---|---|---|---|---|"]
 
     comparisons = [
-        ("Structure loss: does an unconstrained fit on the SAME state beat the Markov WP?",
-         "RRR Markov", "XGB (b,w,r)"),
-        ("M5 licensing: does `striker_balls` add signal beyond (b,w,r)?",
-         "XGB (b,w,r)", "XGB (b,w,r)+striker"),
-        ("Extra features: does target/crr/over/phase add signal beyond state+striker?",
-         "XGB (b,w,r)+striker", "XGB (full)"),
-        ("Spec 06 headline: unstructured vs structured, unrestricted features.",
-         "RRR Markov", "XGB (full)"),
-        ("Does the era adjustment help on held-out seasons?",
-         "RRR Markov", "RRR Markov (era 0.75)"),
+        (
+            "Structure loss: does an unconstrained fit on the SAME state beat the Markov WP?",
+            "RRR Markov",
+            "XGB (b,w,r)",
+        ),
+        (
+            "M5 licensing: does `striker_balls` add signal beyond (b,w,r)?",
+            "XGB (b,w,r)",
+            "XGB (b,w,r)+striker",
+        ),
+        (
+            "Extra features: does target/crr/over/phase add signal beyond state+striker?",
+            "XGB (b,w,r)+striker",
+            "XGB (full)",
+        ),
+        (
+            "Spec 06 headline: unstructured vs structured, unrestricted features.",
+            "RRR Markov",
+            "XGB (full)",
+        ),
+        (
+            "Does the era adjustment help on held-out seasons?",
+            "RRR Markov",
+            "RRR Markov (era 0.75)",
+        ),
     ]
     ablation = {}
     for q, a, b in comparisons:
@@ -310,23 +365,32 @@ def make_report(preds: dict, holdout: pd.DataFrame, meta: dict) -> tuple[str, di
 
     # --- why does the richest feature set lose? (it overfits the era) --------
     xgb = meta["xgb"]
-    L += ["## Why the richest XGBoost loses: era overfitting, not a bug", "",
-          f"Mean chase `target` is **{meta['target_train']:.1f}** in training vs "
-          f"**{meta['target_holdout']:.1f}** in the held-out seasons -- the same era shift "
-          f"M2.5 was built for. `XGB (full)` is the only fit that sees `target`/`crr`, and "
-          f"it spends its capacity carving up 2008-2023 scoring conditions that no longer "
-          f"exist. Its TRAINING log loss is far the best and its held-out log loss far the "
-          f"worst. Early stopping cannot catch this: the validation season (2023) is on the "
-          f"training side of the shift.", ""]
+    L += [
+        "## Why the richest XGBoost loses: era overfitting, not a bug",
+        "",
+        f"Mean chase `target` is **{meta['target_train']:.1f}** in training vs "
+        f"**{meta['target_holdout']:.1f}** in the held-out seasons -- the same era shift "
+        f"M2.5 was built for. `XGB (full)` is the only fit that sees `target`/`crr`, and "
+        f"it spends its capacity carving up 2008-2023 scoring conditions that no longer "
+        f"exist. Its TRAINING log loss is far the best and its held-out log loss far the "
+        f"worst. Early stopping cannot catch this: the validation season (2023) is on the "
+        f"training side of the shift.",
+        "",
+    ]
     L += ["| XGBoost fit | best iter | train LL | val LL | held-out LL |", "|---|---|---|---|---|"]
     for n, i in xgb.items():
-        L.append(f"| {n} | {i['best_iter']} | {i['train_ll']:.4f} | {i['val_ll']:.4f} | "
-                 f"{metrics[n]['log_loss']:.4f} |")
-    L += ["",
-          "Note the XGBoost fits are *handicapped* relative to the Markov and logistic "
-          "models: they lose the 2023 season to early stopping, and 2023 is the training "
-          "season closest to the held-out era. The structure-loss result below is therefore "
-          "conservative -- XGB wins despite the handicap.", ""]
+        L.append(
+            f"| {n} | {i['best_iter']} | {i['train_ll']:.4f} | {i['val_ll']:.4f} | "
+            f"{metrics[n]['log_loss']:.4f} |"
+        )
+    L += [
+        "",
+        "Note the XGBoost fits are *handicapped* relative to the Markov and logistic "
+        "models: they lose the 2023 season to early stopping, and 2023 is the training "
+        "season closest to the held-out era. The structure-loss result below is therefore "
+        "conservative -- XGB wins despite the handicap.",
+        "",
+    ]
 
     # --- where does the Markov model fall behind? (spec 06: "and *where*") ---
     L += ["## Where the structured model lags (log loss by phase)", ""]
@@ -341,47 +405,59 @@ def make_report(preds: dict, holdout: pd.DataFrame, meta: dict) -> tuple[str, di
     # --- findings -------------------------------------------------------------
     d_struct = ablation[("RRR Markov", "XGB (b,w,r)")]
     d_m5 = ablation[("XGB (b,w,r)", "XGB (b,w,r)+striker")]
-    L += ["## Findings", "",
-          f"**0. The best model here is the plain logistic** "
-          f"(log loss {metrics['logistic (spec06)']['log_loss']:.4f}, beating every XGBoost "
-          f"variant). Spec 06 predicted 'XGBoost will likely win on raw Brier/log loss.' It "
-          f"does not, and the reason is the same era shift: under a covariate shift this "
-          f"large, the rigid model is the robust one. Capacity is a liability here, not an "
-          f"asset.", "",
-          f"**1. The gap is structure/calibration, not missing state.** Given the *identical* "
-          f"`(b,w,r)`, an unconstrained fit beats the RRR Markov WP by "
-          f"{abs(d_struct[0]):.3f} nats (95% CI [{-d_struct[2]:.3f}, {-d_struct[1]:.3f}]). "
-          f"The Markov WP's ECE is {metrics['RRR Markov']['ece']:.3f} against "
-          f"{metrics['XGB (b,w,r)']['ece']:.3f}: it is not missing information, it is "
-          f"*under-confident* with what it has. That is the memoryless tail-thinning already "
-          f"documented in validation_report.md -- independent per-ball draws thin the scoring "
-          f"right tail, so hard chases look harder than they are.", "",
-          f"**2. M5 is NOT licensed.** Adding `striker_balls` moves held-out log loss by "
-          f"{d_m5[0]:+.5f} nats, CI [{d_m5[1]:+.5f}, {d_m5[2]:+.5f}] -- a CI straddling zero "
-          f"and two orders of magnitude smaller than the structure gap. A direct label fit is "
-          f"the most flexible possible use of the feature; if the signal were there, XGBoost "
-          f"would find it. Spec 07 gates M5 on reducing held-out log loss AND residual "
-          f"autocorrelation. It fails the first half outright.", "",
-          f"This does not say the +0.037 lag-1 autocorrelation is illusory. It says the "
-          f"autocorrelation does not translate into *win-probability* signal: knowing the "
-          f"striker is set shifts the next-ball outcome distribution slightly, but that edge "
-          f"washes out across the ~60 balls left in a chase. The Markov approximation is "
-          f"adequate at this granularity -- spec 07: 'a negative result here is a real "
-          f"finding, not a failure.'", "",
-          f"**3. Where to spend effort instead.** The era adjustment (half-life 0.75) is the "
-          f"single largest structured-model win in this table "
-          f"({abs(ablation[('RRR Markov', 'RRR Markov (era 0.75)')][0]):.3f} nats, CI excludes "
-          f"zero), and it closes only part of the calibration gap. Recovering the rest means "
-          f"attacking the tail-thinning in the *outcome model* -- correlated per-ball draws or "
-          f"an over-dispersed outcome distribution -- not widening the state.", ""]
+    L += [
+        "## Findings",
+        "",
+        f"**0. The best model here is the plain logistic** "
+        f"(log loss {metrics['logistic (spec06)']['log_loss']:.4f}, beating every XGBoost "
+        f"variant). Spec 06 predicted 'XGBoost will likely win on raw Brier/log loss.' It "
+        f"does not, and the reason is the same era shift: under a covariate shift this "
+        f"large, the rigid model is the robust one. Capacity is a liability here, not an "
+        f"asset.",
+        "",
+        f"**1. The gap is structure/calibration, not missing state.** Given the *identical* "
+        f"`(b,w,r)`, an unconstrained fit beats the RRR Markov WP by "
+        f"{abs(d_struct[0]):.3f} nats (95% CI [{-d_struct[2]:.3f}, {-d_struct[1]:.3f}]). "
+        f"The Markov WP's ECE is {metrics['RRR Markov']['ece']:.3f} against "
+        f"{metrics['XGB (b,w,r)']['ece']:.3f}: it is not missing information, it is "
+        f"*under-confident* with what it has. That is the memoryless tail-thinning already "
+        f"documented in validation_report.md -- independent per-ball draws thin the scoring "
+        f"right tail, so hard chases look harder than they are.",
+        "",
+        f"**2. M5 is NOT licensed.** Adding `striker_balls` moves held-out log loss by "
+        f"{d_m5[0]:+.5f} nats, CI [{d_m5[1]:+.5f}, {d_m5[2]:+.5f}] -- a CI straddling zero "
+        f"and two orders of magnitude smaller than the structure gap. A direct label fit is "
+        f"the most flexible possible use of the feature; if the signal were there, XGBoost "
+        f"would find it. Spec 07 gates M5 on reducing held-out log loss AND residual "
+        f"autocorrelation. It fails the first half outright.",
+        "",
+        "This does not say the +0.037 lag-1 autocorrelation is illusory. It says the "
+        "autocorrelation does not translate into *win-probability* signal: knowing the "
+        "striker is set shifts the next-ball outcome distribution slightly, but that edge "
+        "washes out across the ~60 balls left in a chase. The Markov approximation is "
+        "adequate at this granularity -- spec 07: 'a negative result here is a real "
+        "finding, not a failure.'",
+        "",
+        f"**3. Where to spend effort instead.** The era adjustment (half-life 0.75) is the "
+        f"single largest structured-model win in this table "
+        f"({abs(ablation[('RRR Markov', 'RRR Markov (era 0.75)')][0]):.3f} nats, CI excludes "
+        f"zero), and it closes only part of the calibration gap. Recovering the rest means "
+        f"attacking the tail-thinning in the *outcome model* -- correlated per-ball draws or "
+        f"an over-dispersed outcome distribution -- not widening the state.",
+        "",
+    ]
 
-    L += ["## Caveat that survives any result here", "",
-          "A fitted WP model does not give leverage for free (spec 06). It predicts WP "
-          "but not the next-ball outcome distribution, so it cannot produce `swing`, and "
-          "it is not a martingale -- WPA on top of it would not satisfy E[WPA|state]=0. "
-          "Leverage and WPA stay on the Markov outcome model regardless of which row "
-          "wins the table above. What this table decides is whether the WP *surface* "
-          "those metrics ride on should be widened (M5).", ""]
+    L += [
+        "## Caveat that survives any result here",
+        "",
+        "A fitted WP model does not give leverage for free (spec 06). It predicts WP "
+        "but not the next-ball outcome distribution, so it cannot produce `swing`, and "
+        "it is not a martingale -- WPA on top of it would not satisfy E[WPA|state]=0. "
+        "Leverage and WPA stay on the Markov outcome model regardless of which row "
+        "wins the table above. What this table decides is whether the WP *surface* "
+        "those metrics ride on should be widened (M5).",
+        "",
+    ]
 
     return "\n".join(L), {"metrics": metrics, "ablation": ablation}
 
@@ -395,8 +471,14 @@ def plot_reliability(preds: dict, holdout: pd.DataFrame, path) -> None:
     y = holdout["y"].to_numpy()
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.plot([0, 1], [0, 1], "k--", lw=1, label="perfect")
-    for n in ["RRR Markov", "RRR Markov (era 0.75)", "logistic (spec06)",
-              "XGB (b,w,r)", "XGB (b,w,r)+striker", "XGB (full)"]:
+    for n in [
+        "RRR Markov",
+        "RRR Markov (era 0.75)",
+        "logistic (spec06)",
+        "XGB (b,w,r)",
+        "XGB (b,w,r)+striker",
+        "XGB (full)",
+    ]:
         conf, acc, _ = reliability_curve(preds[n], y)
         ax.plot(conf, acc, marker="o", ms=3, lw=1.2, label=n)
     ax.set_xlabel("predicted WP")
@@ -420,7 +502,9 @@ def main() -> int:
 
     point, lo, hi = res["ablation"][("XGB (b,w,r)", "XGB (b,w,r)+striker")]
     print("\n=== M5 licensing verdict (spec 07: 'only if M2-M4 motivate it') ===")
-    print(f"  delta log loss from adding striker_balls: {point:+.5f}  95% CI [{lo:+.5f}, {hi:+.5f}]")
+    print(
+        f"  delta log loss from adding striker_balls: {point:+.5f}  95% CI [{lo:+.5f}, {hi:+.5f}]"
+    )
     if hi < 0:
         print("  LICENSED: striker_balls significantly reduces held-out log loss.")
         print("  A direct fit is the most flexible use of the feature, so this is an")

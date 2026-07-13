@@ -53,8 +53,16 @@ def test_scattered_mode_marginal_fidelity_and_fallback(setup):
     the arm is a valid mechanism probe."""
     train, dist, wp, sampler = setup
     _, realized, fb_rate = run_block_experiment(
-        train, dist, wp, seed=0, sampler=sampler,
-        block_lengths=[1], per_slice=25, n_sims=120, scattered_k=20)
+        train,
+        dist,
+        wp,
+        seed=0,
+        sampler=sampler,
+        block_lengths=[1],
+        per_slice=25,
+        n_sims=120,
+        scattered_k=20,
+    )
     tv = 0.5 * np.abs(realized["scattered_K20"] - realized["block_K1"]).sum()
     assert tv < 0.05  # marginals preserved (loose bound: tiny-sample MC noise)
     assert 0.0 <= fb_rate < 0.5  # donors usually cover the needed cells
@@ -69,6 +77,6 @@ def test_scattered_draws_come_from_the_donor_innings(setup):
     keys = rng.choice(list(sampler.ic_ptr.keys()), size=200)
     for cb in keys:
         start, length = sampler.ic_ptr[int(cb)]
-        pos = sampler.ic_positions[start:start + length]
+        pos = sampler.ic_positions[start : start + length]
         assert (sampler.inn_of[pos] == int(cb) // 1000).all()
         assert (sampler.cell[pos] == int(cb) % 1000).all()

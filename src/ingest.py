@@ -97,7 +97,11 @@ def _resolve_split(df: pd.DataFrame) -> pd.Series:
     first_date = df.groupby("season")["date"].min().sort_values()
     ordered_seasons = list(first_date.index)
     holdout = set(ordered_seasons[-config.N_HELDOUT_SEASONS :])
-    return df["season"].map(lambda s: "holdout" if s in holdout else "train"), ordered_seasons, holdout
+    return (
+        df["season"].map(lambda s: "holdout" if s in holdout else "train"),
+        ordered_seasons,
+        holdout,
+    )
 
 
 def build_ball_table(raw_csv=config.RAW_CSV) -> pd.DataFrame:
@@ -145,14 +149,18 @@ def build_ball_table(raw_csv=config.RAW_CSV) -> pd.DataFrame:
     df["_legal_rank"] = legal.groupby(df["match_id"]).cumsum().astype(int)
     illegal = df[~legal]
     # key absorbed extras by (match, rank of the FOLLOWING legal ball = last legal + 1)
-    absorbed = illegal.groupby([illegal["match_id"], illegal["_legal_rank"] + 1])["runs_total"].sum()
+    absorbed = illegal.groupby([illegal["match_id"], illegal["_legal_rank"] + 1])[
+        "runs_total"
+    ].sum()
 
     # --- keep only legal deliveries -------------------------------------------
     df = df[legal].copy().reset_index(drop=True)
     is_wicket = df["_is_wicket"].astype(int)
     key = pd.MultiIndex.from_arrays([df["match_id"], df["_legal_rank"]])
     df["_absorbed"] = absorbed.reindex(key).fillna(0).to_numpy().astype(int)
-    extras_runs_dropped = int(absorbed.sum() - df["_absorbed"].sum())  # trailing extras, no next legal ball
+    extras_runs_dropped = int(
+        absorbed.sum() - df["_absorbed"].sum()
+    )  # trailing extras, no next legal ball
 
     # --- PRE-ball state (b, w, r) ---------------------------------------------
     # team_* are POST-ball cumulative; back them out to before this ball.
@@ -173,7 +181,9 @@ def build_ball_table(raw_csv=config.RAW_CSV) -> pd.DataFrame:
     # wide is the only common >6 case; the cap loses a rare run, counted below).
     runs = df["runs_total"].astype(int)
     if runs.max() > 6 or runs.min() < 0:
-        raise SystemExit(f"FATAL: unexpected runs_total on a legal ball: {runs.min()}..{runs.max()}")
+        raise SystemExit(
+            f"FATAL: unexpected runs_total on a legal ball: {runs.min()}..{runs.max()}"
+        )
     effective = runs + df["_absorbed"]
     n_capped = int((effective > 6).sum())
     effective = effective.clip(upper=6)
@@ -306,8 +316,7 @@ def main() -> int:
         for f in fails:
             print(f"  FAIL: {f}")
         return 1
-    print(f"  PASS  ({len(out):,} legal second-innings balls, "
-          f"{out['match_id'].nunique()} matches)")
+    print(f"  PASS  ({len(out):,} legal second-innings balls, {out['match_id'].nunique()} matches)")
 
     config.DATA_PROCESSED.mkdir(parents=True, exist_ok=True)
     out.to_parquet(config.BALLS_PARQUET, index=False)

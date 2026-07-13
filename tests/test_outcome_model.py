@@ -80,6 +80,7 @@ def test_unit_weights_reproduce_unweighted_fit(train):
 def test_recency_shifts_distribution_toward_recent_scoring(train):
     """A short half-life must move the global outcome frequency toward the recent,
     higher-scoring era: strictly more expected runs per ball than the flat fit."""
+
     def exp_runs(d):
         return sum((0 if o == "W" else int(o)) * d[o] for o in OUTCOMES)
 

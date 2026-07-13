@@ -44,10 +44,7 @@ def swing(state: State, outcome_dist: OutcomeDist, wp: WPTable) -> float:
     square.
     """
     p = wp(state)
-    return sum(
-        prob * abs(wp(transition(state, o)) - p)
-        for o, prob in outcome_dist(state).items()
-    )
+    return sum(prob * abs(wp(transition(state, o)) - p) for o, prob in outcome_dist(state).items())
 
 
 def average_swing(ball_states, outcome_dist: OutcomeDist, wp: WPTable) -> float:
@@ -68,9 +65,7 @@ def average_swing(ball_states, outcome_dist: OutcomeDist, wp: WPTable) -> float:
     return total / n
 
 
-def leverage_index(
-    state: State, avg_swing: float, outcome_dist: OutcomeDist, wp: WPTable
-) -> float:
+def leverage_index(state: State, avg_swing: float, outcome_dist: OutcomeDist, wp: WPTable) -> float:
     """Swing rescaled so the average real ball has LI = 1."""
     return swing(state, outcome_dist, wp) / avg_swing
 
@@ -133,16 +128,25 @@ def martingale_drift(balls: pd.DataFrame, wp: WPTable, n_buckets: int = 10) -> p
     delta = np.concatenate(p_to) - pf
     edges = np.linspace(0, 1, n_buckets + 1)
     idx = np.clip(np.digitize(pf, edges) - 1, 0, n_buckets - 1)
-    rows = [{"bucket": "overall", "n": len(delta), "mean_from": pf.mean(), "mean_signed_change": delta.mean()}]
+    rows = [
+        {
+            "bucket": "overall",
+            "n": len(delta),
+            "mean_from": pf.mean(),
+            "mean_signed_change": delta.mean(),
+        }
+    ]
     for k in range(n_buckets):
         m = idx == k
         if m.any():
-            rows.append({
-                "bucket": f"[{edges[k]:.1f},{edges[k + 1]:.1f})",
-                "n": int(m.sum()),
-                "mean_from": float(pf[m].mean()),
-                "mean_signed_change": float(delta[m].mean()),
-            })
+            rows.append(
+                {
+                    "bucket": f"[{edges[k]:.1f},{edges[k + 1]:.1f})",
+                    "n": int(m.sum()),
+                    "mean_from": float(pf[m].mean()),
+                    "mean_signed_change": float(delta[m].mean()),
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -228,7 +232,10 @@ def main() -> int:
     bottom = d[d["b"] >= 6].sort_values("li").head(10)[show]
 
     li_by_phase = (
-        df.groupby("phase")["li"].agg(["mean", "count"]).reindex(["powerplay", "middle", "death"]).round(3)
+        df.groupby("phase")["li"]
+        .agg(["mean", "count"])
+        .reindex(["powerplay", "middle", "death"])
+        .round(3)
     )
     li_by_over = df.groupby("over")["li"].mean().round(3)
 
@@ -274,7 +281,9 @@ def main() -> int:
         "",
         "## Leverage by phase / over (is the death really the leveraged part?)",
         "",
-        _fmt(li_by_phase.reset_index().rename(columns={"index": "phase"}), ["phase", "mean", "count"]),
+        _fmt(
+            li_by_phase.reset_index().rename(columns={"index": "phase"}), ["phase", "mean", "count"]
+        ),
         "",
         "Mean LI by over (0-indexed):",
         "",
