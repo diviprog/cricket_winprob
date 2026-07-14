@@ -80,7 +80,11 @@ calibration bias, not skill, so career totals are **de-drifted
 state-conditionally** (subtract the mean WPA of balls at a similar WP) to make
 batter-vs-bowler totals comparable. The honest clutch signal is `wpa_high` vs
 `wpa_low`: players like AB de Villiers and MS Dhoni are strongly positive in
-high-leverage moments while flat-to-negative in ordinary ones.
+high-leverage moments while flat-to-negative in ordinary ones. Match-clustered
+bootstrap CIs (`reports/player_uncertainty.md`) confirm Dhoni's split
+(**+0.018 [+0.004, +0.032]** per ball) and show adjacent leaderboard ranks are
+never separable (0/36 pairs) while role-level contrasts are decisive — the
+rankings resolve roles, not neighbours.
 
 **Fitted baselines + the hidden-state question (M4).** Against the same held-out
 split, a plain logistic (log loss **0.4157**) beats every XGBoost variant — under

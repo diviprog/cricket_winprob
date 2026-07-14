@@ -136,7 +136,12 @@ highest average leverage are the recognized finishers (H. Pandya 1.40,
 Dhoni 1.39, Pollard 1.34, all with career medians at positions 5–6), the
 lowest are top-order anchors; and mean LI correlates with death-over share at
 +0.75 for batters and +0.56 for bowlers. Who *faces* the big moments is a
-role, and the model measures it cleanly.
+role, and the model measures it cleanly. Match-clustered intervals on these
+leaderboards (§9; `reports/player_uncertainty.md`) make the resolution
+explicit: no adjacent pair in any top-ten table is statistically
+distinguishable, while the top finisher and the lowest-leverage qualified
+anchor differ in mean LI by +0.69 (95% CI [+0.33, +1.08]). The rankings
+separate roles, not neighbouring names.
 
 ### 4.3 Win probability added, and making it fair
 
@@ -171,9 +176,12 @@ from *being present*: M.S. Dhoni is essentially flat on ordinary balls
 (−0.001 per ball) and strongly positive on his 346 high-leverage balls
 (+0.017 per ball), the statistical signature the word "finisher" gestures
 at; by contrast a genuinely excellent overall batter can invert the split
-(S.A. Yadav: +0.003 ordinary, −0.010 high-leverage). We report these as
-descriptive splits with a stated caution: per-ball differences below about
-±0.005 sit inside the dependence error bound of §4.1.
+(S.A. Yadav: +0.003 ordinary, −0.010 high-leverage). Match-clustered
+bootstrap intervals (§9) put both named splits outside zero: Dhoni's
+high-minus-low difference is +0.018 per ball (95% CI [+0.004, +0.032]),
+Yadav's −0.013 ([−0.031, −0.001]). One caution stands regardless: per-ball
+differences below about ±0.005 sit inside the dependence error bound of
+§4.1, which these intervals condition on rather than capture.
 
 ---
 

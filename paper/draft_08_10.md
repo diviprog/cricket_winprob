@@ -140,11 +140,20 @@ Both are disclosed data-contract decisions rather than modelling claims, and
 neither touches the calibration analysis, but WPA at the individual level
 inherits them.
 
-**Player-level uncertainty.** Leverage and WPA leaderboards are reported as
-point estimates; the match-clustered bootstrap used for model comparison
-extends to per-player intervals and should be applied before any strong claim
-about adjacent players in the rankings. Differences below ±0.005 in per-ball
-clutch rates are within the model's dependence error bound in any case.
+**Player-level uncertainty.** Leaderboards carry match-clustered bootstrap
+intervals (2,000 replicates per player, whole innings resampled; per-ball
+resampling would assume away the dependence §7 measured;
+`reports/player_uncertainty.md`). They sharpen §4 in both directions. No
+adjacent pair in any top-ten table is statistically separable (0 of 36
+adjacent-rank difference CIs exclude zero), so the rankings resolve roles
+rather than neighbouring names, and the role contrast is decisive (mean LI
++0.69, CI [+0.33, +1.08], top finisher against the lowest-leverage qualified
+anchor). The headline clutch splits survive: Dhoni's is +0.018 per ball (CI
+[+0.004, +0.032]), the Yadav inversion −0.013 (CI [−0.031, −0.001]); five of
+seventeen qualifying batters have splits excluding zero. The intervals
+condition on the fitted surfaces; the model-level dependence bound of §4.1
+sits on top of them, and per-ball differences below about ±0.005 remain
+inside it.
 
 ---
 

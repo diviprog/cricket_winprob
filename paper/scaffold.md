@@ -307,3 +307,7 @@ index and WPA (borrowed from baseball: Tango; Studeman).
 | dependence closes gap | 26% at K=20, 6/6 seeds, block fidelity ≤0.0033 | correlation_experiment.md |
 | saturation resolved | K=20 < K=40 in 6/6 seeds | correlation_experiment.md |
 | scattered arm degenerate | gap 0.019 < whole-trajectory 0.046; TV 0.018 | correlation_experiment.md |
+| adjacent ranks not separable | 0/36 adjacent-rank diff CIs exclude 0 | player_uncertainty.md |
+| role separation decisive | Pandya vs Iyer mean-LI +0.692 [+0.332, +1.078] | player_uncertainty.md |
+| Dhoni clutch split significant | +0.0179 [+0.0042, +0.0317] (346 high-LI balls) | player_uncertainty.md |
+| Yadav inversion significant | −0.0132 [−0.0305, −0.0010] | player_uncertainty.md |

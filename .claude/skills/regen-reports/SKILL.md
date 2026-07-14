@@ -28,9 +28,10 @@ hand-edit them; fix the generating module and re-run.
 | 8 | `src.tail_diagnostics` | `reports/tail_diagnostics.md` | 1 | ~3 min |
 | 9 | `src.dependence_decomposition` | `reports/dependence_decomposition.md` | 1 | ~20 s |
 | 10 | `src.correlation_experiment` | `reports/correlation_experiment.md` | 1 | **~35 min** (6 seeds) |
-| 11 | `paper/make_figures.py` (script, not -m) | `paper/figures/F3,F4` | 9, 10 (parses those reports) | ~5 s |
+| 11 | `src.player_uncertainty` | `reports/player_uncertainty.md` | 2 (needs `wp`,`li`) | ~1 min |
+| 12 | `paper/make_figures.py` (script, not -m) | `paper/figures/F3,F4` | 9, 10 (parses those reports) | ~5 s |
 
-Steps 3–10 are independent of each other except as noted; only re-run what
+Steps 3–11 are independent of each other except as noted; only re-run what
 changed. Warn the user before launching step 10.
 
 ## After regeneration
