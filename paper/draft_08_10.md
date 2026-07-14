@@ -155,6 +155,18 @@ condition on the fitted surfaces; the model-level dependence bound of §4.1
 sits on top of them, and per-ball differences below about ±0.005 remain
 inside it.
 
+**In-play markets as a third surface.** In-play betting markets price the
+same chase states on a strictly finer information set: player identities,
+pitch behaviour, the live broadcast. The dependence measured in §7 makes a
+specific prediction about any scoreboard-state price — after a boundary it
+sits below the truth, after a run of dot balls above — and it is an open
+empirical question whether market prices carry that persistence at the
+right magnitude, over-shoot it, or ignore it. Testing whether
+market-implied win probability behaves as a martingale with respect to
+(b, w, r) is a direct application of the machinery built here; it awaits
+ball-level alignment of exchange odds with the ball-by-ball record, and we
+leave it open.
+
 ---
 
 ## 10. Conclusion
